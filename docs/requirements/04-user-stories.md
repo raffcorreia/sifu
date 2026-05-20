@@ -8,7 +8,7 @@
 - Como operador, quero criar Nota de Empenho para reservar orçamento para futuras despesas.
 - Como operador, quero liquidar empenhos após confirmação de recebimento de bens ou serviços.
 - Como operador, quero registrar pagamentos via Ordem Bancária para efetuar o desembolso.
-- Como operador, desejo fazer login seguro no sistema usando usuário e senha.
+- Como operador, quero fazer login seguro no sistema usando usuário e senha.
 
 ## Como Gestor Financeiro
 
@@ -34,8 +34,8 @@
 
 - Como desenvolvedor, quero configurar o banco de dados PostgreSQL e aplicar migrations.
 - Como desenvolvedor, quero definir o `.gitignore` para excluir artefatos locais e de build.
-- Como desenvolvedor, quero preparar scripts Docker para subir o ambiente (DB + aplicação) localmente.
+- Como desenvolvedor, quero preparar scripts Docker para subir o ambiente (banco + aplicação) localmente.
 - Como desenvolvedor, quero criar um arquivo de configuração de ambiente (`.env` ou similar) para variáveis sensíveis.
-- Como desenvolvedor, quero definir pipelines de CI básico (build/test) em GitHub Actions ou similar.
-- Como desenvolvedor, quero documentar passos de inicialização (`README`) para novos contribuintes.
-- Como desenvolvedor, quero escrever testes automatizados para as operações principais (empenho, NC, consultas).
+- Como desenvolvedor, quero definir pipelines de CI básico (build + testes) no GitHub Actions.
+- Como desenvolvedor, quero documentar os passos de inicialização no `README` para novos contribuintes.
+- Como desenvolvedor, quero escrever testes automatizados para as operações principais (NC, NE, consultas financeiras).

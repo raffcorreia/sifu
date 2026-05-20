@@ -2,10 +2,10 @@
 
 ## Organização de Múltiplos Órgãos
 
-O SIFU suporta múltiplos órgãos e instituições através de uma **hierarquia de Unidades Gestoras (UG)**:
+O SIFU suporta múltiplos órgãos e instituições através de uma hierarquia de **Unidades Gestoras (UG)**:
 
 - Cada órgão é representado como uma UG na raiz da hierarquia
-- Subórgãos ou departamentos podem ser representados como UGs subordinadas (através do campo `orgao_superior`)
+- Subórgãos ou departamentos são representados como UGs subordinadas (campo `orgaoSuperior`)
 - Notas de Crédito (NC) permitem transferência de recursos entre órgãos diferentes
 - Cada UG possui suas próprias dotações orçamentárias, empenhos e operações
 
@@ -30,262 +30,220 @@ Ministério X
 - FonteRecurso
 - PTRES
 - DotacaoOrcamentaria
-- CreditoOrcamentario
 - NotaCredito (NC)
 - Fornecedor
 - NotaEmpenho (NE)
 - LiquidacaoEmpenho (NL)
 - OrdemBancaria (OB)
 - Usuario
-- PerfilAcesso
 
 ## Relacionamentos entre Entidades
 
-- UG 1 --- N DotacaoOrcamentaria
-- DotacaoOrcamentaria
-  - → AcaoOrcamentaria
-  - → PlanoInterno
-  - → NaturezaDespesa
-  - → FonteRecurso
-  - → PTRES
-- NotaCredito
-  - → UG Origem
-  - → UG Destino
-  - → DotacaoOrcamentaria
-- NotaEmpenho
-  - → DotacaoOrcamentaria
-  - → Fornecedor
-- LiquidacaoEmpenho
-  - → NotaEmpenho
-- OrdemBancaria
-  - → LiquidacaoEmpenho
+```
+UG 1 --- N DotacaoOrcamentaria
+
+DotacaoOrcamentaria
+  → AcaoOrcamentaria
+  → PlanoInterno
+  → NaturezaDespesa
+  → FonteRecurso
+  → PTRES
+
+NotaCredito
+  → UG Origem
+  → UG Destino
+  → DotacaoOrcamentaria Origem
+  → DotacaoOrcamentaria Destino
+
+NotaEmpenho
+  → DotacaoOrcamentaria
+  → Fornecedor
+
+LiquidacaoEmpenho
+  → NotaEmpenho
+
+OrdemBancaria
+  → LiquidacaoEmpenho
+```
 
 ## CRUDs Necessários
 
-### 4.1 Unidade Gestora (UG)
+### Unidade Gestora (UG)
 
-Representa órgãos, instituições, departamentos na hierarquia do sistema.
+Representa órgãos, instituições e departamentos na hierarquia do sistema.
 
 **Campos:**
 
 - id
-- codigo_ug (código único que identifica a UG no órgão superior)
+- codigoUg (código único que identifica a UG)
 - nome
-- orgao_superior (referência para hierarquia)
-- status (ativo/inativo)
-- descricao (descrição da unidade gestora)
+- orgaoSuperior (referência hierárquica, nullable para UGs raiz)
+- status (ativo / inativo)
+- descricao
 
 **Operações:**
 
-- CREATE UG
-- READ UG
-- UPDATE UG
-- LIST UG
-- LIST UGs subordinadas
+- Criar UG
+- Consultar UG
+- Atualizar UG
+- Listar UGs
+- Listar UGs subordinadas
 
 **Exemplo:**
-- UG: Ministério da Educação (código: MIN_ED, orgao_superior: NULL)
-- UG: Secretaria de Ensino Superior (código: SES, orgao_superior: MIN_ED)
-- UG: Instituto X (código: INST_X, orgao_superior: SES)
+```
+Ministério da Educação   (codigoUg: MIN_ED,  orgaoSuperior: null)
+Secretaria de Ensino     (codigoUg: SES,     orgaoSuperior: MIN_ED)
+Instituto X              (codigoUg: INST_X,  orgaoSuperior: SES)
+```
 
-### 4.2 Classificações Orçamentárias
+---
+
+### Classificações Orçamentárias
 
 #### Ação Orçamentária
 
-**Campos:**
-
-- id
-- codigo
-- descricao
-- exercicio
+**Campos:** id, codigo, descricao, exercicio
 
 CRUD completo.
 
 #### Plano Interno (PI)
 
-**Campos:**
-
-- id
-- codigo
-- descricao
-- acao_orcamentaria_id
+**Campos:** id, codigo, descricao, acaoOrcamentariaId
 
 CRUD completo.
 
 #### Natureza da Despesa (ND)
 
-**Campos:**
-
-- id
-- codigo
-- descricao
-- tipo
+**Campos:** id, codigo, descricao, tipo
 
 CRUD completo.
 
 #### Fonte de Recurso
 
-**Campos:**
-
-- id
-- codigo
-- descricao
+**Campos:** id, codigo, descricao
 
 CRUD completo.
 
 #### PTRES
 
-**Campos:**
-
-- id
-- codigo
-- descricao
+**Campos:** id, codigo, descricao
 
 CRUD completo.
 
-## 5. Dotação Orçamentária
+---
 
-Representa o orçamento disponível.
+### Dotação Orçamentária
+
+Representa o orçamento disponível para uma UG em um exercício.
 
 **Campos:**
 
 - id
-- ug_id
-- acao_orcamentaria_id
-- plano_interno_id
-- natureza_despesa_id
-- fonte_recurso_id
-- ptres_id
-- valor_inicial
-- valor_atualizado
+- ugId
+- acaoOrcamentariaId
+- planoInternoId
+- naturezaDespesaId
+- fonteRecursoId
+- ptresId
+- valorInicial
+- valorAtualizado
 - exercicio
 
-**Operações:**
-
-- CREATE dotação
-- READ dotação
-- UPDATE dotação
-- CONSULT saldo
+**Operações:** Criar, Consultar, Atualizar, Consultar saldo.
 
 **Saldo calculado:**
-
 ```
 saldo = dotacao + creditos_recebidos - empenhos_emitidos
 ```
 
-## 6. Nota de Crédito (NC)
+---
 
-Usada para **transferência de crédito orçamentário**.
+### Nota de Crédito (NC)
+
+Usada para transferência de crédito orçamentário entre órgãos.
 
 **Campos:**
 
 - id
-- numero_nc
-- ug_origem
-- ug_destino
-- dotacao_origem
-- dotacao_destino
+- numeroNc
+- ugOrigem
+- ugDestino
+- dotacaoOrigem
+- dotacaoDestino
 - valor
-- data_emissao
+- dataEmissao
 - status
 
-**Operações:**
-
-- CRIAR NC
-- APROVAR NC
-- CANCELAR NC
-- CONSULTAR NC
+**Operações:** Criar, Aprovar, Cancelar, Consultar.
 
 **Regras:**
+- Valor da NC deve ser menor ou igual ao saldo disponível da dotação de origem.
 
-- valor NC <= saldo disponível
+---
 
-## 7. Fornecedor
+### Fornecedor
 
-**Campos:**
+**Campos:** id, cnpj, nome, tipoPessoa, status
 
-- id
-- cnpj
-- nome
-- tipo_pessoa
-- status
+**Operações:** Criar, Consultar, Atualizar, Pesquisar.
 
-**Operações:**
+---
 
-- CREATE fornecedor
-- READ fornecedor
-- UPDATE fornecedor
-- SEARCH fornecedor
+### Nota de Empenho (NE)
 
-## 8. Nota de Empenho (NE)
-
-Reserva de orçamento para despesa.
+Reserva de orçamento para uma despesa.
 
 **Campos:**
 
 - id
-- numero_empenho
-- ug_id
-- dotacao_id
-- fornecedor_id
-- natureza_despesa
-- plano_interno
+- numeroEmpenho
+- ugId
+- dotacaoId
+- fornecedorId
+- naturezaDespesa
+- planoInterno
 - valor
-- data_emissao
-- tipo_empenho
+- dataEmissao
+- tipoEmpenho (ORDINARIO / ESTIMATIVO / GLOBAL)
 - status
 
-**Tipos:**
-
-- ORDINARIO
-- ESTIMATIVO
-- GLOBAL
-
-**Operações:**
-
-- CRIAR empenho
-- ANULAR empenho
-- CONSULTAR empenho
-- LISTAR empenhos
+**Operações:** Criar, Anular, Consultar, Listar.
 
 **Regras:**
+- Valor do empenho deve ser menor ou igual ao saldo da dotação.
 
-- valor empenho <= saldo da dotação
+---
 
-## 9. Liquidação de Empenho (NL)
+### Liquidação de Empenho (NL)
 
-Confirma que o serviço foi prestado.
+Confirma que o bem foi entregue ou o serviço foi prestado.
 
 **Campos:**
 
 - id
-- numero_liquidacao
-- nota_empenho_id
+- numeroLiquidacao
+- notaEmpenhoId
 - valor
-- data_liquidacao
-- documento_fiscal
+- dataLiquidacao
+- documentoFiscal
 - status
 
-**Operações:**
+**Operações:** Criar, Consultar.
 
-- CRIAR liquidação
-- CONSULTAR liquidação
+---
 
-## 10. Ordem Bancária (OB)
+### Ordem Bancária (OB)
 
-Pagamento ao fornecedor.
+Registra o pagamento ao fornecedor.
 
 **Campos:**
 
 - id
-- numero_ob
-- liquidacao_id
+- numeroOb
+- liquidacaoId
 - valor
-- data_pagamento
+- dataPagamento
 - banco
 - status
 
-**Operações:**
-
-- CRIAR ordem bancária
-- CONSULTAR pagamento
+**Operações:** Criar, Consultar.

@@ -1,34 +1,39 @@
-# SIFU – Sistema Integrado Financeiro Unificado
+# SIFU — Sistema Integrado Financeiro Unificado
 
-Este repositório contém o código e a documentação para o **SIFU**, um sistema educacional inspirado no SIAFI (SERPRO). A ideia é mostrar como um sistema governamental de finanças é estruturado e como outros sistemas podem integrá-lo.
+O **SIFU** é um sistema educacional de gestão orçamentária e financeira, inspirado no SIAFI (SERPRO). Seu objetivo é demonstrar como sistemas financeiros governamentais são estruturados e como outros sistemas podem se integrar a eles.
 
----
-
-## Estrutura de Documentação
-
-Durante o desenvolvimento, cada grupo de histórias de usuário ou técnica deverá receber sua própria documentação incremental. Quando um recurso for iniciado, um `README.md` localizado em uma pasta apropriada (por exemplo `docs/user-stories/operador/README.md` ou `docs/tech/db-setup/README.md`) deve ser criado para:
-
-1. **Descrever o objetivo** da funcionalidade.
-2. **Explicar como usar** (uma visão geral das telas, endpoints ou comandos).
-3. **Listar detalhes técnicos** necessários para configuração e execução.
-4. **Notar procedimentos de teste** ou validação.
-
-Essa documentação será construída à medida que o código for entregue — por isso nada está presente atualmente.
+O sistema cobre o ciclo completo da execução da despesa pública: da criação de dotações orçamentárias até o pagamento ao fornecedor, passando por Notas de Crédito, Empenhos, Liquidações e Ordens Bancárias.
 
 ---
 
-## Guia Inicial (a ser preenchido durante implementação)
+## Documentação de Requisitos
 
-Os detalhes de ambiente, banco de dados, primeiros acessos e API REST serão documentados nas fases iniciais do desenvolvimento.
+A documentação de requisitos está em `docs/requirements/`:
+
+| Arquivo | Conteúdo |
+|---|---|
+| `01-overview.md` | Visão geral, objetivos e escopo |
+| `02-data-model.md` | Modelo de dados e entidades principais |
+| `03-functional-requirements.md` | Requisitos funcionais |
+| `04-user-stories.md` | Histórias de usuário por perfil |
+| `05-non-functional-requirements.md` | Segurança, qualidade, performance e arquitetura |
+
+---
+
+## Estrutura do Projeto
+
+À medida que o sistema for implementado, cada funcionalidade receberá documentação incremental em `docs/`, organizada por história ou tema técnico. Cada pasta deve conter um `README.md` com:
+
+1. Objetivo da funcionalidade
+2. Como usar (telas, endpoints ou comandos)
+3. Detalhes técnicos de configuração e execução
+4. Procedimentos de teste e validação
 
 ---
 
 ## Como Contribuir
 
-1. Crie uma branch com o nome da história (`feature/user-login`, `tech/db-setup`).
-2. Após implementar o recurso, adicione ou atualize um `README.md` correspondendo à história.
-3. Abra um pull request descrevendo as mudanças.
-
----
-
-Se você preferir uma divisão diferente dos README por história, adapte a estrutura conforme necessário.
+1. Crie uma branch com o nome da história (`feature/nota-empenho`, `tech/db-setup`).
+2. Implemente o recurso.
+3. Adicione ou atualize o `README.md` correspondente à história.
+4. Abra um pull request com evidência de execução dos testes.
