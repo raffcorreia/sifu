@@ -45,6 +45,15 @@ CREATE TABLE tokens_integracao (
     criado_em       TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE tokens_redefinicao_senha (
+    id          BIGSERIAL    PRIMARY KEY,
+    usuario_id  BIGINT       NOT NULL REFERENCES usuarios(id),
+    token       VARCHAR(100) NOT NULL UNIQUE,
+    expira_em   TIMESTAMPTZ  NOT NULL,
+    usado       BOOLEAN      NOT NULL DEFAULT FALSE,
+    criado_em   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
 -- ============================================================
 -- ESTRUTURA ORGANIZACIONAL
 -- ============================================================

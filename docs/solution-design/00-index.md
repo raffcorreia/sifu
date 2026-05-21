@@ -19,6 +19,7 @@
 | 10 | integration.md | Operations | API para sistemas externos e tokens de integração |
 | 11 | observability.md | Operations | Logging, health checks e métricas |
 | 12 | deployment.md | Operations | Docker, variáveis de ambiente e CI/CD |
+| 13 | qa-process.md | Operations | Processo de QA, casos de teste por fase e sign-off |
 
 ## Rastreamento de Requisitos
 
@@ -40,6 +41,14 @@
 | RNF Performance | requirements/05 | 04-database, 11-observability |
 | RNF Qualidade | requirements/05 | 09-testing |
 | RNF Deploy | requirements/05 | 12-deployment |
+
+## Decisões Arquiteturais Registradas
+
+| Decisão | Escolha | Justificativa |
+|---|---|---|
+| Entidade `Gestao` (requirements/02) | Não implementada na Fase 1 | Em SIAFI, "código de gestão" é um campo da célula orçamentária (5 dígitos), mas foi omitido intencionalmente para simplificar o escopo educacional. Pode ser adicionado como classificação orçamentária em fase futura se necessário. |
+| Entidade `PerfilAcesso` (requirements/02) | Não implementada | Todos os usuários têm acesso ADMIN completo — simplificação proposital conforme requirements/01. |
+| Gestão de exercício | Sem entidade própria | O exercício é tratado como campo inteiro nas entidades — não há necessidade de "abrir" ou "fechar" exercício no escopo atual. |
 
 ## Dependências entre Documentos
 

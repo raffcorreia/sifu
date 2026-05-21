@@ -106,7 +106,31 @@ RUN npm run build
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 5173
+EXPOSE 80
+```
+
+### `frontend/nginx.conf`
+
+```nginx
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # SPA: redireciona todas as rotas para index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Cache de assets estáticos
+    location ~* \.(js|css|png|jpg|svg|woff2)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    gzip on;
+    gzip_types text/plain text/css application/javascript application/json;
+}
 ```
 
 ## Como Iniciar o Ambiente Local
