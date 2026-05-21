@@ -5,6 +5,30 @@
 
 ---
 
+## Índice
+
+- [Resumo do Escopo](#resumo-do-escopo)
+  - [O Que Está Sendo Construído](#o-que-está-sendo-construído)
+  - [O Que Está Explicitamente Fora do Escopo](#o-que-está-explicitamente-fora-do-escopo)
+  - [Requisitos Chave](#requisitos-chave)
+  - [Stack Tecnológica](#stack-tecnológica)
+  - [Resumo das Regras de Negócio Chave](#resumo-das-regras-de-negócio-chave)
+- [Índice de Fases](#índice-de-fases)
+- [Fases](#fases)
+  - [FASE-000 — Scaffolding e Infraestrutura](#fase-000--scaffolding-e-infraestrutura)
+  - [FASE-001 — Autenticação e Segurança](#fase-001--autenticação-e-segurança)
+  - [FASE-002 — UGs e Classificações Orçamentárias](#fase-002--ugs-e-classificações-orçamentárias)
+  - [FASE-003 — Dotações e Notas de Crédito](#fase-003--dotações-e-notas-de-crédito)
+  - [FASE-004 — Fornecedores e Notas de Empenho](#fase-004--fornecedores-e-notas-de-empenho)
+  - [FASE-005 — Liquidação e Ordem Bancária](#fase-005--liquidação-e-ordem-bancária)
+  - [FASE-006 — Consultas, Dashboard e Tokens de Integração](#fase-006--consultas-dashboard-e-tokens-de-integração)
+  - [FASE-007 — Observabilidade e Deploy](#fase-007--observabilidade-e-deploy)
+  - [FASE-008 — Dados de Demonstração](#fase-008--dados-de-demonstração)
+- [Fases de Correção de Bugs](#fases-de-correção-de-bugs)
+- [Notas](#notas)
+
+---
+
 ## Resumo do Escopo
 
 O **SIFU (Sistema Integrado Financeiro Unificado)** é um sistema web educacional que reproduz os principais fluxos do SIAFI — o sistema financeiro do Governo Federal brasileiro. É funcional, não apenas didático, cobrindo o ciclo completo da despesa pública.
@@ -104,6 +128,7 @@ O **SIFU (Sistema Integrado Financeiro Unificado)** é um sistema web educaciona
 | FASE-005 | Liquidação e Ordem Bancária | RF09, RF10 — QA FASE 5 | FASE-004 |
 | FASE-006 | Consultas, Dashboard e Tokens de Integração | RF11–RF19 — QA FASE 6 | FASE-005 |
 | FASE-007 | Observabilidade e Deploy | — (operacional) | FASE-006 |
+| FASE-008 | Dados de Demonstração | — (dados) | FASE-007 |
 
 ---
 
@@ -1265,6 +1290,202 @@ FASE-006 Consultas, Dashboard e Tokens de Integração
 
 ---
 
+### FASE-008 — Dados de Demonstração
+
+#### Identidade da Fase
+
+**ID da Fase**: FASE-008
+**Nome da Fase**: Dados de Demonstração
+**Mapeamento FR**: Nenhum (dados)
+
+#### Objetivo
+
+O sistema está populado com dados fictícios porém críveis que representam um ano orçamentário completo do **Ministério da Educação (exercício 2025)**. Ao fazer login, o usuário vê um dashboard com números significativos, listas de documentos em todos os estados possíveis, e pode navegar o ciclo financeiro completo sem precisar criar dados manualmente. Os dados cobrem todas as fases do ciclo: dotações com saldo, NCs aprovadas, NEs em estados variados, liquidações e OBs processadas.
+
+#### Dependências
+
+FASE-007 Observabilidade e Deploy
+
+#### Estrutura dos Dados de Demonstração
+
+**Hierarquia de Unidades Gestoras:**
+```
+MIN_ED    — Ministério da Educação                    (raiz)
+├── SEPS  — Secretaria de Educação Básica             (subordinada de MIN_ED)
+├── SESU  — Secretaria de Educação Superior           (subordinada de MIN_ED)
+└── FNDE  — Fundo Nacional de Desenvolv. da Educação (subordinada de MIN_ED)
+```
+
+**Classificações Orçamentárias:**
+
+| Tipo | Código | Descrição |
+|---|---|---|
+| Ação Orçamentária | 2030 | Apoio à Educação Básica nas Redes Públicas de Ensino |
+| Ação Orçamentária | 20RK | Funcionamento das Instituições Federais de Ensino Superior |
+| Ação Orçamentária | 0E36 | Apoio ao Desenvolvimento da Educação Profissional |
+| Plano Interno | INFRA_ESCOLA_2025 | Infraestrutura Escolar — Construção e Reforma |
+| Plano Interno | BOLSAS_GRAD_2025 | Bolsas de Graduação — Prouni e FIES |
+| Natureza de Despesa | 339039 | Outros Serviços de Terceiros — PJ |
+| Natureza de Despesa | 339030 | Material de Consumo |
+| Natureza de Despesa | 449051 | Obras e Instalações |
+| Fonte de Recurso | 0100 | Recursos do Tesouro Nacional — Exercício Corrente |
+| Fonte de Recurso | 0250 | Recursos Próprios — Receitas Diretamente Arrecadadas |
+| PTRES | 109301 | Educação Básica — Apoio a Sistemas de Ensino |
+| PTRES | 109302 | Educação Superior — Manutenção IFES |
+
+**Dotações (exercício 2025):**
+
+| UG | Ação | ND | Valor Inicial | Valor Atualizado |
+|---|---|---|---|---|
+| SEPS | 2030 | 339039 | R$ 8.000.000,00 | R$ 9.200.000,00 |
+| SEPS | 2030 | 449051 | R$ 15.000.000,00 | R$ 15.000.000,00 |
+| SESU | 20RK | 339039 | R$ 12.000.000,00 | R$ 13.500.000,00 |
+| SESU | 20RK | 339030 | R$ 2.500.000,00 | R$ 2.500.000,00 |
+| FNDE | 0E36 | 339039 | R$ 6.000.000,00 | R$ 6.800.000,00 |
+
+**Fornecedores:**
+
+| CNPJ | Nome | Tipo |
+|---|---|---|
+| 07526557000100 | Construtora Horizonte Ltda | JURIDICA |
+| 33000118000179 | Papelaria Central do Brasil S.A. | JURIDICA |
+| 60701190000104 | Tecbrasil Soluções em TI Ltda | JURIDICA |
+| 09206050000180 | Editora Conhecimento Vivo Ltda | JURIDICA |
+| 12345678000195 | Gráfica e Serviços Nacionais ME | JURIDICA |
+
+**Notas de Crédito:**
+
+| Número | Origem → Destino | Valor | Status |
+|---|---|---|---|
+| 2025MINED000001 | SEPS → FNDE | R$ 1.200.000,00 | APROVADA |
+| 2025MINED000002 | SESU → SEPS | R$ 500.000,00 | APROVADA |
+| 2025MINED000003 | FNDE → SESU | R$ 300.000,00 | PENDENTE |
+| 2025MINED000004 | SEPS → SESU | R$ 800.000,00 | CANCELADA |
+
+**Notas de Empenho (amostra representativa):**
+
+| NE | Dotação UG | Fornecedor | Valor | Tipo | Status |
+|---|---|---|---|---|---|
+| 2025SEPS000001 | SEPS/2030/339039 | Tecbrasil Soluções em TI | R$ 480.000,00 | ORDINARIO | PAGA |
+| 2025SEPS000002 | SEPS/2030/339039 | Gráfica e Serviços Nacionais | R$ 95.000,00 | ESTIMATIVO | LIQUIDADA |
+| 2025SEPS000003 | SEPS/2030/449051 | Construtora Horizonte | R$ 4.200.000,00 | GLOBAL | PARCIALMENTE_LIQUIDADA |
+| 2025SESU000001 | SESU/20RK/339039 | Papelaria Central do Brasil | R$ 750.000,00 | ORDINARIO | A_LIQUIDAR |
+| 2025SESU000002 | SESU/20RK/339030 | Editora Conhecimento Vivo | R$ 180.000,00 | ESTIMATIVO | A_LIQUIDAR |
+| 2025FNDE000001 | FNDE/0E36/339039 | Tecbrasil Soluções em TI | R$ 320.000,00 | ORDINARIO | ANULADA |
+| 2025SEPS000004 | SEPS/2030/339039 | Papelaria Central do Brasil | R$ 60.000,00 | ORDINARIO | A_LIQUIDAR |
+
+> Os dados são construídos de forma que o dashboard da UG `SEPS` para 2025 exiba todos os quatro indicadores preenchidos: crédito disponível, empenhado, liquidado e pago.
+
+#### Plano
+
+1. Criar a migração `V9__dados_demonstracao.sql` em `backend/src/main/resources/db/migration/`:
+   - Proteger com condição: `INSERT ... WHERE NOT EXISTS (SELECT 1 FROM unidades_gestoras WHERE codigo_ug = 'MIN_ED')` — idempotente, não duplica dados se migration for re-executada em ambiente de desenvolvimento com banco recriado
+   - Inserir UGs na ordem: `MIN_ED` primeiro (sem superior), depois as três subordinadas (com `orgao_superior_id` referenciando `MIN_ED`)
+   - Inserir as 3 ações orçamentárias, 2 planos internos, 3 naturezas de despesa, 2 fontes, 2 PTRES
+   - Inserir as 5 dotações com seus vínculos às classificações e UGs
+   - Inserir os 5 fornecedores
+   - Inserir as 4 NCs (gerando números manualmente, pois `GeradorNumeracaoDocumento` é código de aplicação)
+   - Atualizar `sequencias_documentos` para refletir os sequenciais usados
+   - Inserir as 7 NEs com os estados correspondentes
+   - Inserir liquidações para as NEs com status `PAGA`, `LIQUIDADA` e `PARCIALMENTE_LIQUIDADA`
+   - Inserir OBs para as liquidações das NEs `PAGA`
+   - Inserir entradas na tabela `auditoria` para as operações principais (login do admin, aprovações, emissões)
+
+2. A migration deve seguir a ordem de inserção que respeita as FKs:
+   ```
+   unidades_gestoras (raiz primeiro)
+   → acoes_orcamentarias
+   → planos_internos (referencia acoes_orcamentarias)
+   → naturezas_despesa
+   → fontes_recurso
+   → ptres
+   → dotacoes_orcamentarias
+   → sequencias_documentos (pré-popular com os sequenciais já usados)
+   → fornecedores
+   → notas_credito
+   → notas_empenho
+   → liquidacoes_empenho
+   → ordens_bancarias
+   → auditoria
+   ```
+
+3. Verificar que os valores são matematicamente consistentes:
+   - Saldo de cada dotação = `valor_atualizado + NCs_aprovadas_recebidas − NCs_aprovadas_cedidas − NEs_ativas` deve ser ≥ 0
+   - Valor total das NEs ≤ saldo da dotação correspondente
+   - Valor das NLs ≤ valor das NEs vinculadas
+   - Valor das OBs = valor das NLs vinculadas
+
+4. Criar o script `backend/src/main/resources/db/demo-reset.sql`:
+   - Script que apaga apenas os dados de demonstração (DELETE na ordem inversa das FKs) e re-executa V9
+   - Facilita o reset em ambiente de desenvolvimento sem recriar o banco inteiro
+   - Documentado no README: `docker exec sifu-banco psql -U sifu -d sifu -f /demo-reset.sql`
+
+5. Criar arquivo `docs/implementation/dados-demonstracao.md` com:
+   - Tabela de todos os usuários (login, senha, status)
+   - Tabela de todas as UGs com hierarquia
+   - Estado atual do sistema após a migration (saldos esperados por dotação)
+   - Fluxos de navegação sugeridos para demonstração:
+     - **Demo 1 — Ciclo Completo:** Abrir dotação SEPS/2030/339039 → consultar saldo → emitir nova NE → liquidar → emitir OB → processar OB → verificar dashboard
+     - **Demo 2 — Nota de Crédito:** Criar NC de SESU para SEPS → aprovar → verificar impacto nos saldos
+     - **Demo 3 — Dashboard:** Navegar para Dashboard com UG=SEPS/exercício=2025 → ver todos os indicadores preenchidos
+     - **Demo 4 — Auditoria:** Navegar para Auditoria → ver histórico de operações pré-carregadas
+
+6. Verificar consistência dos dados executando as queries de saldo via API após aplicar a migration:
+   - `GET /api/v1/dotacoes/{id}/saldo` para cada dotação — valores devem bater com os calculados manualmente
+   - `GET /api/v1/consultas/dashboard?ugId={SEPS_ID}&exercicio=2025` — todos os 5 campos preenchidos com valores > 0
+   - `GET /api/v1/notas-empenho?ugId={SEPS_ID}` — 4 NEs listadas em estados distintos
+
+7. Atualizar o README com seção "Dados de Demonstração":
+   - Descrever o cenário (MEC exercício 2025)
+   - Listar os dados disponíveis
+   - Explicar como resetar: `docker exec sifu-banco psql ...`
+
+#### Resultado Esperado
+
+- Migration V9 aplicada ao subir o sistema — dados de demonstração carregados automaticamente
+- Dashboard de SEPS/2025 exibe: crédito disponível, total empenhado, liquidado e pago com valores reais
+- Listagem de NEs mostra documentos em todos os 5 estados (A_LIQUIDAR, PARCIALMENTE_LIQUIDADA, LIQUIDADA, PAGA, ANULADA)
+- Listagem de NCs mostra os 4 estados (PENDENTE, APROVADA, CANCELADA — sem ESTORNADA para deixar esse fluxo disponível para demonstração manual)
+- Log de auditoria pré-populado com operações
+- Arquivo `dados-demonstracao.md` guia qualquer apresentação do sistema
+
+#### Verificação Automatizada (AI Gate)
+
+1. `docker compose up --build` → migration V9 aplicada sem erros
+2. `GET /api/v1/dotacoes/{id}/saldo` para a dotação SEPS/2030/339039 → `saldoDisponivel > 0`
+3. `GET /api/v1/consultas/dashboard?ugId={SEPS_ID}&exercicio=2025` → todos os 5 campos > 0
+4. `GET /api/v1/notas-empenho?ugId={SEPS_ID}` → NEs em pelo menos 4 status distintos
+5. `GET /api/v1/notas-credito?status=APROVADA` → pelo menos 2 NCs aprovadas
+6. `GET /api/v1/auditoria` → pelo menos 10 entradas de auditoria pré-carregadas
+7. Verificar idempotência: executar V9 duas vezes (simulando re-run) não duplica registros
+
+**Esperado:**
+- Sistema pronto para demonstração sem necessidade de inserção manual de dados
+- Todos os valores financeiros são matematicamente consistentes
+
+#### Verificação Humana (Human Gate)
+
+1. Fazer login como `admin` — dashboard exibe números significativos imediatamente
+2. Navegar por todos os módulos e confirmar que listas não estão vazias
+3. Executar o **Demo 1** (ciclo completo) descrito em `dados-demonstracao.md` sem erros
+4. Confirmar que o log de auditoria tem entradas pré-carregadas
+5. Resetar os dados com o script e confirmar que o sistema retorna ao estado de demonstração
+
+#### Critérios de Sucesso
+
+✅ Migration V9 idempotente criada e aplicada automaticamente
+✅ 4 UGs com hierarquia correta (MIN_ED raiz + 3 subordinadas)
+✅ 5 dotações com valores distintos e saldos positivos
+✅ 4 NCs em estados: PENDENTE, APROVADA (×2), CANCELADA
+✅ 7 NEs em estados: A_LIQUIDAR (×3), PARCIALMENTE_LIQUIDADA, LIQUIDADA, PAGA, ANULADA
+✅ Liquidações e OBs para NEs PAGA e LIQUIDADA
+✅ Dashboard SEPS/2025 exibe todos os indicadores com valores > 0
+✅ Log de auditoria pré-populado
+✅ Script de reset `demo-reset.sql` funcional
+✅ Arquivo `dados-demonstracao.md` documenta o cenário e os fluxos de demo
+
+---
+
 ## Fases de Correção de Bugs
 
 _Nenhuma fase de correção de bugs ainda. As fases de correção serão adicionadas aqui conforme necessário durante a execução._
@@ -1274,6 +1495,7 @@ _Nenhuma fase de correção de bugs ainda. As fases de correção serão adicion
 ## Notas
 
 - Este plano cobre a implementação completa do SIFU — a Fase 1 do produto definida em `docs/solution-design/01-solution-overview.md`
+- O plano tem **9 fases** (FASE-000 a FASE-008): 6 fases de funcionalidade com QA sign-off, 1 de infraestrutura base, 1 operacional e 1 de dados de demonstração
 - Cada fase de implementação (FASE-001 a FASE-006) corresponde a uma fase de QA em `docs/solution-design/13-qa-process.md` — **nenhuma fase avança sem o sign-off do QA**
 - As fases FASE-003 a FASE-005 cobrem os fluxos críticos (NC, NE, NL, OB) que exigem cobertura ≥ 90%
 - A migration V5 é criada **completa** na FASE-004 (incluindo tabelas de NL e OB) para evitar migrações parciais; o código de serviço de NL e OB é implementado na FASE-005
@@ -1281,4 +1503,5 @@ _Nenhuma fase de correção de bugs ainda. As fases de correção serão adicion
 - Os testes de integração usam Testcontainers com PostgreSQL real — nenhum mock de banco de dados é permitido nos fluxos financeiros críticos
 - **Todas as constantes de teste** devem ser declaradas no topo da classe/arquivo, antes de qualquer método, conforme a convenção em `docs/solution-design/09-testing.md`
 - O frontend segue o design visual do SIAFI Web conforme `docs/solution-design/07-frontend-design.md` com a paleta DSGov (primary `#1351B4`, fonte Rawline)
+- Os dados de demonstração são documentados em `docs/implementation/dados-demonstracao.md` com o cenário completo e roteiros de demo (criado na FASE-008)
 - Este plano segue a estrutura de `samples/implementation/implementation-plan.md`
