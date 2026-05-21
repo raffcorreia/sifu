@@ -12,12 +12,12 @@ Formato estruturado JSON em produção (via Logback + logstash-logback-encoder):
 {
   "timestamp": "2025-05-20T14:30:00.000Z",
   "level": "INFO",
-  "logger": "br.gov.sifu.notaempenho.NotaEmpenhoService",
-  "mensagem": "NE emitida com sucesso",
-  "numeroEmpenho": "2025MIN_ED000103",
-  "ugId": 1,
-  "usuarioLogin": "joao.silva",
-  "duracao_ms": 45
+  "logger": "br.gov.sifu.commitment.CommitmentService",
+  "message": "NE emitida com sucesso",
+  "commitmentNumber": "2025MIN_ED000103",
+  "managingUnitId": 1,
+  "userLogin": "joao.silva",
+  "duration_ms": 45
 }
 ```
 

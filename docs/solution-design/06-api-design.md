@@ -7,7 +7,7 @@
 - Base URL: `/api/v1`
 - Formato: JSON (`Content-Type: application/json`)
 - Autenticação: `Authorization: Bearer <token>`
-- Paginação: parâmetros `pagina`, `tamanho`, `ordenarPor`, `direcao`
+- Paginação: parâmetros `page`, `size`, `sortBy`, `direction`
 - Erros: RFC 7807 (Problem Details)
 - Datas: ISO 8601 (`YYYY-MM-DD` para datas, `YYYY-MM-DDTHH:mm:ssZ` para timestamps)
 - Valores monetários: número decimal com 2 casas (`1500.00`)
@@ -19,10 +19,10 @@
 ### POST `/api/v1/auth/login`
 ```json
 // Requisição
-{ "login": "joao.silva", "senha": "MinhaS3nha!" }
+{ "login": "joao.silva", "password": "MinhaS3nha!" }
 
 // Resposta 200
-{ "token": "eyJ...", "expiracao": "2025-05-21T10:00:00Z", "usuario": { "login": "joao.silva", "nome": "João Silva" } }
+{ "token": "eyJ...", "expiresAt": "2025-05-21T10:00:00Z", "user": { "login": "joao.silva", "name": "João Silva" } }
 
 // Erro 401 — credenciais inválidas
 // Erro 423 — conta bloqueada
@@ -31,20 +31,20 @@
 ### POST `/api/v1/auth/logout`
 Invalida a sessão atual. Requer autenticação.
 
-### POST `/api/v1/auth/recuperar-senha`
+### POST `/api/v1/auth/recover-password`
 ```json
 { "email": "joao@orgao.gov.br" }
 // Resposta 204 (sempre, para não expor se e-mail existe)
 ```
 
-### PUT `/api/v1/auth/redefinir-senha`
+### PUT `/api/v1/auth/reset-password`
 ```json
-{ "tokenRedefinicao": "abc123", "novaSenha": "NovaS3nha!" }
+{ "resetToken": "abc123", "newPassword": "NovaS3nha!" }
 ```
 
-### PUT `/api/v1/auth/alterar-senha`
+### PUT `/api/v1/auth/change-password`
 ```json
-{ "senhaAtual": "Atual123!", "novaSenha": "Nova456!" }
+{ "currentPassword": "Atual123!", "newPassword": "Nova456!" }
 ```
 
 ---
@@ -57,10 +57,10 @@ Lista tokens do usuário autenticado (metadados; sem o valor do token).
 ### POST `/api/v1/tokens`
 ```json
 // Requisição
-{ "nome": "Sistema de Compras", "expiracao": "2026-12-31" }
+{ "name": "Sistema de Compras", "expiresAt": "2026-12-31" }
 
 // Resposta 201 — token exibido uma única vez
-{ "id": 1, "nome": "Sistema de Compras", "token": "sifu_tk_abc123...", "expiracao": "2026-12-31T23:59:59Z" }
+{ "id": 1, "name": "Sistema de Compras", "token": "sifu_tk_abc123...", "expiresAt": "2026-12-31T23:59:59Z" }
 ```
 
 ### DELETE `/api/v1/tokens/{id}`
@@ -70,37 +70,37 @@ Revoga o token. Resposta 204.
 
 ## Unidades Gestoras
 
-### GET `/api/v1/unidades-gestoras`
-Filtros: `status`, `codigo`, `nome`. Paginado.
+### GET `/api/v1/managing-units`
+Filtros: `status`, `code`, `name`. Paginado.
 
-### POST `/api/v1/unidades-gestoras`
+### POST `/api/v1/managing-units`
 ```json
-{ "codigoUg": "MIN_ED", "nome": "Ministério da Educação", "orgaoSuperiorId": null, "descricao": "..." }
+{ "unitCode": "MIN_ED", "name": "Ministério da Educação", "parentUnitId": null, "description": "..." }
 // Resposta 201
 ```
 
-### GET `/api/v1/unidades-gestoras/{id}`
+### GET `/api/v1/managing-units/{id}`
 
-### PUT `/api/v1/unidades-gestoras/{id}`
+### PUT `/api/v1/managing-units/{id}`
 
-### PATCH `/api/v1/unidades-gestoras/{id}/desativar`
+### PATCH `/api/v1/managing-units/{id}/deactivate`
 Resposta 204.
 
-### GET `/api/v1/unidades-gestoras/{id}/subordinadas`
+### GET `/api/v1/managing-units/{id}/subordinates`
 Retorna hierarquia de subordinadas (recursiva).
 
 ---
 
 ## Classificações Orçamentárias
 
-Padrão idêntico para: `/api/v1/acoes-orcamentarias`, `/api/v1/planos-internos`, `/api/v1/naturezas-despesa`, `/api/v1/fontes-recurso`, `/api/v1/ptres`.
+Padrão idêntico para: `/api/v1/budget-actions`, `/api/v1/internal-plans`, `/api/v1/expense-natures`, `/api/v1/funding-sources`, `/api/v1/ptres`.
 
 ```
 GET    /api/v1/{recurso}        → lista paginada
 POST   /api/v1/{recurso}        → cria (201)
 GET    /api/v1/{recurso}/{id}   → detalhe
 PUT    /api/v1/{recurso}/{id}   → atualiza
-PATCH  /api/v1/{recurso}/{id}/desativar → desativa (204)
+PATCH  /api/v1/{recurso}/{id}/deactivate → desativa (204)
 DELETE /api/v1/{recurso}/{id}   → exclui (somente se nunca referenciado; 204)
 ```
 
@@ -108,34 +108,34 @@ DELETE /api/v1/{recurso}/{id}   → exclui (somente se nunca referenciado; 204)
 
 ## Dotações Orçamentárias
 
-### GET `/api/v1/dotacoes`
-Filtros: `ugId`, `exercicio`, `acaoOrcamentariaId`, `status`.
+### GET `/api/v1/allotments`
+Filtros: `unitId`, `fiscalYear`, `budgetActionId`, `status`.
 
-### POST `/api/v1/dotacoes`
+### POST `/api/v1/allotments`
 ```json
 {
-  "ugId": 1, "acaoOrcamentariaId": 5, "planoInternoId": 3,
-  "naturezaDespesaId": 2, "fonteRecursoId": 1, "ptresId": 4,
-  "valorInicial": 500000.00, "exercicio": 2025
+  "unitId": 1, "budgetActionId": 5, "internalPlanId": 3,
+  "expenseNatureId": 2, "fundingSourceId": 1, "ptresId": 4,
+  "initialValue": 500000.00, "fiscalYear": 2025
 }
 // Resposta 201
 ```
 
-### GET `/api/v1/dotacoes/{id}/saldo`
+### GET `/api/v1/allotments/{id}/saldo`
 ```json
 {
-  "dotacaoInicial": 500000.00,
-  "dotacaoAtualizada": 550000.00,
-  "creditosRecebidos": 50000.00,
-  "creditosCedidos": 0.00,
-  "empenhado": 120000.00,
-  "saldoDisponivel": 430000.00
+  "initialAllotment": 500000.00,
+  "updatedAllotment": 550000.00,
+  "creditsReceived": 50000.00,
+  "creditsTransferred": 0.00,
+  "committed": 120000.00,
+  "availableBalance": 430000.00
 }
 ```
 
-### POST `/api/v1/dotacoes/{id}/suplementar`
+### POST `/api/v1/allotments/{id}/supplement`
 ```json
-{ "valor": 100000.00 }
+{ "value": 100000.00 }
 // Resposta 200 com dotação atualizada
 ```
 
@@ -143,161 +143,161 @@ Filtros: `ugId`, `exercicio`, `acaoOrcamentariaId`, `status`.
 
 ## Notas de Crédito
 
-### GET `/api/v1/notas-credito`
-Filtros: `ugOrigemId`, `ugDestinoId`, `status`, `exercicio`, `dataInicio`, `dataFim`.
+### GET `/api/v1/credit-notes`
+Filtros: `sourceUnitId`, `targetUnitId`, `status`, `fiscalYear`, `dataInicio`, `dataFim`.
 
-### POST `/api/v1/notas-credito`
+### POST `/api/v1/credit-notes`
 ```json
 {
-  "ugOrigemId": 1, "ugDestinoId": 2,
-  "dotacaoOrigemId": 10, "dotacaoDestinoId": 11,
-  "valor": 50000.00, "dataEmissao": "2025-05-20"
+  "sourceUnitId": 1, "targetUnitId": 2,
+  "sourceAllotmentId": 10, "targetAllotmentId": 11,
+  "value": 50000.00, "issueDate": "2025-05-20"
 }
 // Resposta 201 com numero_nc gerado
 ```
 
-### GET `/api/v1/notas-credito/{id}`
+### GET `/api/v1/credit-notes/{id}`
 
-### PATCH `/api/v1/notas-credito/{id}/aprovar`
+### PATCH `/api/v1/credit-notes/{id}/approve`
 Resposta 200 com NC atualizada.
 
-### PATCH `/api/v1/notas-credito/{id}/cancelar`
+### PATCH `/api/v1/credit-notes/{id}/cancel`
 Resposta 200 com NC atualizada.
 
-### PATCH `/api/v1/notas-credito/{id}/estornar`
+### PATCH `/api/v1/credit-notes/{id}/reverse`
 Resposta 200 com NC atualizada.
 
 ---
 
 ## Fornecedores
 
-### GET `/api/v1/fornecedores`
-Filtros: `cnpj`, `nome`, `status`.
+### GET `/api/v1/vendors`
+Filtros: `cnpj`, `name`, `status`.
 
-### POST `/api/v1/fornecedores`
+### POST `/api/v1/vendors`
 ```json
 {
-  "cnpj": "12345678000190", "nome": "Empresa ABC Ltda",
-  "tipoPessoa": "JURIDICA", "banco": "001", "agencia": "1234", "contaCorrente": "56789-0"
+  "cnpj": "12345678000190", "name": "Empresa ABC Ltda",
+  "personType": "JURIDICA", "bank": "001", "branch": "1234", "accountNumber": "56789-0"
 }
 ```
 
-### GET, PUT `/api/v1/fornecedores/{id}`
+### GET, PUT `/api/v1/vendors/{id}`
 
-### PATCH `/api/v1/fornecedores/{id}/desativar`
+### PATCH `/api/v1/vendors/{id}/deactivate`
 
 ---
 
 ## Notas de Empenho
 
-### GET `/api/v1/notas-empenho`
-Filtros: `ugId`, `dotacaoId`, `fornecedorId`, `tipoEmpenho`, `status`, `dataInicio`, `dataFim`.
+### GET `/api/v1/commitments`
+Filtros: `unitId`, `allotmentId`, `vendorId`, `commitmentType`, `status`, `dataInicio`, `dataFim`.
 
-### POST `/api/v1/notas-empenho`
+### POST `/api/v1/commitments`
 ```json
 {
-  "ugId": 1, "dotacaoId": 10, "fornecedorId": 5,
-  "valor": 80000.00, "dataEmissao": "2025-05-20",
-  "tipoEmpenho": "ORDINARIO",
-  "processo": "23000.001234/2025-01",
-  "descricaoObjeto": "Aquisição de equipamentos de informática"
+  "unitId": 1, "allotmentId": 10, "vendorId": 5,
+  "amount": 80000.00, "issueDate": "2025-05-20",
+  "commitmentType": "ORDINARIO",
+  "processNumber": "23000.001234/2025-01",
+  "objectDescription": "Aquisição de equipamentos de informática"
 }
 // Resposta 201 com numero_empenho gerado
 ```
 
-### GET `/api/v1/notas-empenho/{id}`
+### GET `/api/v1/commitments/{id}`
 
-### POST `/api/v1/notas-empenho/{id}/reforco`
+### POST `/api/v1/commitments/{id}/reinforce`
 ```json
-{ "valor": 20000.00 }
+{ "value": 20000.00 }
 // Resposta 200 com NE atualizada
 ```
 
-### PATCH `/api/v1/notas-empenho/{id}/anular`
+### PATCH `/api/v1/commitments/{id}/void`
 ```json
 { "tipo": "TOTAL" }
 // ou
-{ "tipo": "PARCIAL", "valor": 10000.00 }
+{ "tipo": "PARCIAL", "value": 10000.00 }
 ```
 
-### GET `/api/v1/notas-empenho/{id}/liquidacoes`
+### GET `/api/v1/commitments/{id}/settlements`
 Lista liquidações vinculadas à NE.
 
 ---
 
 ## Liquidações de Empenho
 
-### GET `/api/v1/liquidacoes`
-Filtros: `notaEmpenhoId`, `status`, `dataInicio`, `dataFim`.
+### GET `/api/v1/settlements`
+Filtros: `commitmentId`, `status`, `dataInicio`, `dataFim`.
 
-### POST `/api/v1/liquidacoes`
+### POST `/api/v1/settlements`
 ```json
 {
-  "notaEmpenhoId": 7, "valor": 80000.00,
-  "dataLiquidacao": "2025-05-20", "documentoFiscal": "NF-123456"
+  "commitmentId": 7, "amount": 80000.00,
+  "settlementDate": "2025-05-20", "fiscalDocument": "NF-123456"
 }
 // Resposta 201 com numero_liquidacao gerado
 ```
 
-### GET `/api/v1/liquidacoes/{id}`
+### GET `/api/v1/settlements/{id}`
 
-### PATCH `/api/v1/liquidacoes/{id}/estornar`
+### PATCH `/api/v1/settlements/{id}/reverse`
 Resposta 200 com NL atualizada.
 
 ---
 
 ## Ordens Bancárias
 
-### GET `/api/v1/ordens-bancarias`
-Filtros: `liquidacaoId`, `status`, `dataInicio`, `dataFim`.
+### GET `/api/v1/payment-orders`
+Filtros: `settlementId`, `status`, `dataInicio`, `dataFim`.
 
-### POST `/api/v1/ordens-bancarias`
+### POST `/api/v1/payment-orders`
 ```json
 {
-  "liquidacaoId": 3, "valor": 80000.00,
-  "banco": "001", "agencia": "1234", "contaDestino": "56789-0"
+  "settlementId": 3, "amount": 80000.00,
+  "bank": "001", "branch": "1234", "destinationAccount": "56789-0"
 }
 // Resposta 201 com numero_ob gerado
 ```
 
-### GET `/api/v1/ordens-bancarias/{id}`
+### GET `/api/v1/payment-orders/{id}`
 
-### PATCH `/api/v1/ordens-bancarias/{id}/processar`
+### PATCH `/api/v1/payment-orders/{id}/process`
 Marca como processada (simulação de confirmação bancária).
 
-### PATCH `/api/v1/ordens-bancarias/{id}/cancelar`
+### PATCH `/api/v1/payment-orders/{id}/cancel`
 
 ---
 
 ## Consultas
 
-### GET `/api/v1/consultas/execucao-orcamentaria`
-Filtros: `ugId` (obrigatório), `exercicio` (obrigatório), `acaoOrcamentariaId`, `planoInternoId`, `naturezaDespesaId`, `fonteRecursoId`, `ptresId`, `dataInicio`, `dataFim`.
+### GET `/api/v1/reports/budget-execution`
+Filtros: `unitId` (obrigatório), `fiscalYear` (obrigatório), `budgetActionId`, `internalPlanId`, `expenseNatureId`, `fundingSourceId`, `ptresId`, `dataInicio`, `dataFim`.
 
 ```json
 // Resposta
 {
-  "filtros": { "ugId": 1, "exercicio": 2025 },
-  "totais": {
-    "dotacaoInicial": 2000000.00, "dotacaoAtualizada": 2200000.00,
-    "empenhado": 800000.00, "aLiquidar": 200000.00,
-    "liquidado": 600000.00, "aPagar": 100000.00,
-    "pago": 500000.00, "saldoDisponivel": 1400000.00
+  "filters": { "unitId": 1, "fiscalYear": 2025 },
+  "totals": {
+    "initialAllotment": 2000000.00, "updatedAllotment": 2200000.00,
+    "committed": 800000.00, "pendingSettlement": 200000.00,
+    "settled": 600000.00, "pendingPayment": 100000.00,
+    "paid": 500000.00, "availableBalance": 1400000.00
   },
-  "porDotacao": [...]
+  "byAllotment": [...]
 }
 ```
 
-### GET `/api/v1/consultas/dashboard`
-Parâmetros: `ugId`, `exercicio`.
+### GET `/api/v1/reports/dashboard`
+Parâmetros: `unitId`, `fiscalYear`.
 
 ```json
 {
-  "creditoDisponivel": 1400000.00,
-  "totalEmpenhado": 800000.00,
-  "totalLiquidado": 600000.00,
-  "totalPago": 500000.00,
-  "percentualExecutado": 36.36
+  "availableCredit": 1400000.00,
+  "totalCommitted": 800000.00,
+  "totalSettled": 600000.00,
+  "totalPaid": 500000.00,
+  "executionPercentage": 36.36
 }
 ```
 
@@ -305,19 +305,19 @@ Parâmetros: `ugId`, `exercicio`.
 
 ## Auditoria
 
-### GET `/api/v1/auditoria`
-Filtros: `usuarioLogin`, `entidade`, `operacao`, `dataInicio`, `dataFim`, `ugId`. Paginado.
+### GET `/api/v1/audit-log`
+Filtros: `userLogin`, `entidade`, `operacao`, `dataInicio`, `dataFim`, `unitId`. Paginado.
 
 ---
 
 ## Usuários (Administração)
 
 ```
-GET    /api/v1/usuarios
-POST   /api/v1/usuarios
-GET    /api/v1/usuarios/{id}
-PUT    /api/v1/usuarios/{id}
-PATCH  /api/v1/usuarios/{id}/desativar
+GET    /api/v1/users
+POST   /api/v1/users
+GET    /api/v1/users/{id}
+PUT    /api/v1/users/{id}
+PATCH  /api/v1/users/{id}/deactivate
 ```
 
 ---

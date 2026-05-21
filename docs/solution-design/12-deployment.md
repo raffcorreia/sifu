@@ -24,7 +24,7 @@ services:
     environment:
       POSTGRES_DB: sifu
       POSTGRES_USER: sifu
-      POSTGRES_PASSWORD: ${DB_SENHA}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -41,9 +41,9 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://banco:5432/sifu
       SPRING_DATASOURCE_USERNAME: sifu
-      SPRING_DATASOURCE_PASSWORD: ${DB_SENHA}
-      JWT_SEGREDO: ${JWT_SEGREDO}
-      CORS_ORIGENS_PERMITIDAS: http://localhost:5173
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGINS: http://localhost:5173
     depends_on:
       banco:
         condition: service_healthy
@@ -67,13 +67,13 @@ Arquivo `.env` na raiz (nunca commitado — ver `.gitignore`):
 
 | Variável | Descrição | Exemplo |
 |---|---|---|
-| `DB_SENHA` | Senha do PostgreSQL | `s3nh4_s3gura` |
-| `JWT_SEGREDO` | Segredo HMAC-SHA256 para JWT (mínimo 32 chars) | `segredo_muito_longo_aqui` |
-| `CORS_ORIGENS_PERMITIDAS` | Origins aceitas pelo CORS | `http://localhost:5173` |
+| `DB_PASSWORD` | Senha do PostgreSQL | `s3nh4_s3gura` |
+| `JWT_SECRET` | Segredo HMAC-SHA256 para JWT (mínimo 32 chars) | `segredo_muito_longo_aqui` |
+| `CORS_ALLOWED_ORIGINS` | Origins aceitas pelo CORS | `http://localhost:5173` |
 | `EMAIL_HOST` | Servidor SMTP para recuperação de senha | `smtp.example.com` |
-| `EMAIL_PORTA` | Porta SMTP | `587` |
-| `EMAIL_USUARIO` | Usuário SMTP | `noreply@sifu.gov.br` |
-| `EMAIL_SENHA` | Senha SMTP | `senha_email` |
+| `EMAIL_PORT` | Porta SMTP | `587` |
+| `EMAIL_USER` | Usuário SMTP | `noreply@sifu.gov.br` |
+| `EMAIL_PASSWORD` | Senha SMTP | `senha_email` |
 | `RATE_LIMIT_RPM` | Requisições por minuto por token de integração | `100` |
 
 ## Dockerfiles
@@ -152,7 +152,7 @@ docker compose up --build
 # Backend API: http://localhost:8080/api/v1
 # Swagger: http://localhost:8080/swagger-ui.html
 
-# Login padrão (dados iniciais da migration V8):
+# Login padrão (dados iniciais da migration V8__initial_data.sql):
 # login: admin | senha: Admin@123
 ```
 

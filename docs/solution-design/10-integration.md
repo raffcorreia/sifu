@@ -17,7 +17,7 @@ O SIFU expõe uma API REST versionada para que sistemas externos possam integrar
 ## Autenticação nas Requisições
 
 ```http
-GET /api/v1/notas-empenho
+GET /api/v1/commitments
 Authorization: Bearer sifu_tk_abc123...
 Content-Type: application/json
 ```
@@ -27,38 +27,38 @@ Content-Type: application/json
 ### Consultar saldo de uma dotação
 
 ```http
-GET /api/v1/dotacoes/42/saldo
+GET /api/v1/allotments/42/balance
 Authorization: Bearer sifu_tk_abc123...
 ```
 
 ```json
 // Resposta 200
 {
-  "dotacaoInicial": 500000.00,
-  "dotacaoAtualizada": 550000.00,
-  "creditosRecebidos": 50000.00,
-  "creditosCedidos": 0.00,
-  "empenhado": 120000.00,
-  "saldoDisponivel": 430000.00
+  "initialAllotment": 500000.00,
+  "updatedAllotment": 550000.00,
+  "creditReceived": 50000.00,
+  "creditGiven": 0.00,
+  "committed": 120000.00,
+  "availableBalance": 430000.00
 }
 ```
 
 ### Emitir uma Nota de Empenho
 
 ```http
-POST /api/v1/notas-empenho
+POST /api/v1/commitments
 Authorization: Bearer sifu_tk_abc123...
 Content-Type: application/json
 
 {
-  "ugId": 1,
-  "dotacaoId": 42,
-  "fornecedorId": 7,
-  "valor": 80000.00,
-  "dataEmissao": "2025-05-20",
-  "tipoEmpenho": "ORDINARIO",
-  "processo": "23000.001234/2025-01",
-  "descricaoObjeto": "Aquisição de equipamentos de TI"
+  "managingUnitId": 1,
+  "allotmentId": 42,
+  "vendorId": 7,
+  "amount": 80000.00,
+  "issueDate": "2025-05-20",
+  "commitmentType": "ORDINARY",
+  "process": "23000.001234/2025-01",
+  "objectDescription": "Aquisição de equipamentos de TI"
 }
 ```
 
@@ -66,9 +66,9 @@ Content-Type: application/json
 // Resposta 201
 {
   "id": 103,
-  "numeroEmpenho": "2025MIN_ED000103",
-  "status": "A_LIQUIDAR",
-  "valor": 80000.00,
+  "commitmentNumber": "2025MIN_ED000103",
+  "status": "PENDING_SETTLEMENT",
+  "amount": 80000.00,
   ...
 }
 ```
@@ -76,7 +76,7 @@ Content-Type: application/json
 ### Consultar execução orçamentária
 
 ```http
-GET /api/v1/consultas/execucao-orcamentaria?ugId=1&exercicio=2025
+GET /api/v1/queries/budget-execution?managingUnitId=1&fiscalYear=2025
 Authorization: Bearer sifu_tk_abc123...
 ```
 

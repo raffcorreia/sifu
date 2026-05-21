@@ -7,100 +7,100 @@
 ```
 br.gov.sifu
 │
-├── autenticacao/
-│   ├── AutenticacaoController.java
-│   ├── AutenticacaoService.java
+├── auth/
+│   ├── AuthController.java
+│   ├── AuthService.java
 │   ├── JwtService.java
-│   ├── JwtFiltro.java
+│   ├── JwtFilter.java
 │   └── dto/
-│       ├── RequisicaoLogin.java
-│       ├── RespostaLogin.java
-│       └── RequisicaoRedefinicaoSenha.java
+│       ├── LoginRequest.java
+│       ├── LoginResponse.java
+│       └── PasswordResetRequest.java
 │
-├── unidadegestora/
-│   ├── UnidadeGestoraController.java
-│   ├── UnidadeGestoraService.java
-│   ├── UnidadeGestoraRepository.java
-│   ├── UnidadeGestora.java              ← entidade JPA
+├── managingunit/
+│   ├── ManagingUnitController.java
+│   ├── ManagingUnitService.java
+│   ├── ManagingUnitRepository.java
+│   ├── ManagingUnit.java              ← entidade JPA
 │   └── dto/
 │
-├── classificacao/
-│   ├── acao/
-│   │   ├── AcaoOrcamentariaController.java
-│   │   ├── AcaoOrcamentariaService.java
-│   │   ├── AcaoOrcamentariaRepository.java
-│   │   └── AcaoOrcamentaria.java
-│   ├── planointerno/
-│   ├── naturezadespesa/
-│   ├── fonterecurso/
+├── classification/
+│   ├── action/
+│   │   ├── BudgetActionController.java
+│   │   ├── BudgetActionService.java
+│   │   ├── BudgetActionRepository.java
+│   │   └── BudgetAction.java
+│   ├── plan/
+│   ├── expense/
+│   ├── funding/
 │   └── ptres/
 │
-├── dotacao/
-│   ├── DotacaoOrcamentariaController.java
-│   ├── DotacaoOrcamentariaService.java
-│   ├── DotacaoOrcamentariaRepository.java
-│   ├── DotacaoOrcamentaria.java
+├── allotment/
+│   ├── BudgetAllotmentController.java
+│   ├── BudgetAllotmentService.java
+│   ├── BudgetAllotmentRepository.java
+│   ├── BudgetAllotment.java
 │   └── dto/
 │
-├── notacredito/
-│   ├── NotaCreditoController.java
-│   ├── NotaCreditoService.java
-│   ├── NotaCreditoRepository.java
-│   ├── NotaCredito.java
+├── creditnote/
+│   ├── CreditNoteController.java
+│   ├── CreditNoteService.java
+│   ├── CreditNoteRepository.java
+│   ├── CreditNote.java
 │   └── dto/
 │
-├── fornecedor/
+├── vendor/
 │
-├── notaempenho/
-│   ├── NotaEmpenhoController.java
-│   ├── NotaEmpenhoService.java
-│   ├── NotaEmpenhoRepository.java
-│   ├── NotaEmpenho.java
+├── commitment/
+│   ├── CommitmentController.java
+│   ├── CommitmentService.java
+│   ├── CommitmentRepository.java
+│   ├── Commitment.java
 │   └── dto/
 │
-├── liquidacao/
-│   ├── LiquidacaoEmpenhoController.java
-│   ├── LiquidacaoEmpenhoService.java
-│   ├── LiquidacaoEmpenhoRepository.java
-│   ├── LiquidacaoEmpenho.java
+├── settlement/
+│   ├── SettlementController.java
+│   ├── SettlementService.java
+│   ├── SettlementRepository.java
+│   ├── Settlement.java
 │   └── dto/
 │
-├── ordembancaria/
+├── paymentorder/
 │
-├── consulta/
-│   ├── ConsultaController.java          ← execução orçamentária e dashboard
-│   └── ConsultaService.java
+├── report/
+│   ├── ReportController.java          ← execução orçamentária e dashboard
+│   └── ReportService.java
 │
-├── usuario/
-│   ├── UsuarioController.java
-│   ├── UsuarioService.java
-│   └── Usuario.java
+├── user/
+│   ├── UserController.java
+│   ├── UserService.java
+│   └── User.java
 │
 ├── token/
-│   ├── TokenIntegracaoController.java
-│   ├── TokenIntegracaoService.java
-│   └── TokenIntegracao.java
+│   ├── IntegrationTokenController.java
+│   ├── IntegrationTokenService.java
+│   └── IntegrationToken.java
 │
-├── auditoria/
-│   ├── AuditoriaController.java
-│   ├── AuditoriaService.java
-│   ├── AuditoriaInterceptor.java        ← AOP aspect
-│   └── Auditoria.java
+├── audit/
+│   ├── AuditController.java
+│   ├── AuditService.java
+│   ├── AuditInterceptor.java        ← AOP aspect
+│   └── AuditEntry.java
 │
-└── comum/
-    ├── excecao/
-    │   ├── TratadorGlobalExcecoes.java  ← @ControllerAdvice
-    │   ├── SaldoInsuficienteException.java
-    │   ├── DocumentoNaoEncontradoException.java
-    │   ├── TransicaoEstadoInvalidaException.java
+└── common/
+    ├── exception/
+    │   ├── GlobalExceptionHandler.java  ← @ControllerAdvice
+    │   ├── InsufficientBalanceException.java
+    │   ├── EntityNotFoundException.java
+    │   ├── InvalidStateTransitionException.java
     │   └── ...
-    ├── paginacao/
-    │   └── PaginacaoUtils.java
-    ├── seguranca/
-    │   ├── ConfiguracaoSeguranca.java
-    │   └── ContextoSeguranca.java       ← acesso ao usuário logado
-    └── sequencia/
-        └── GeradorNumeracaoDocumento.java
+    ├── pagination/
+    │   └── PaginationUtils.java
+    ├── security/
+    │   ├── SecurityConfig.java
+    │   └── SecurityContext.java       ← acesso ao usuário logado
+    └── sequence/
+        └── DocumentNumberGenerator.java
 ```
 
 ## Camadas e Responsabilidades
@@ -114,7 +114,7 @@ br.gov.sifu
 ### Service
 - Toda a lógica de negócio e validações de domínio
 - Coordena operações entre repositórios
-- Lança exceções de domínio (`SaldoInsuficienteException`, etc.)
+- Lança exceções de domínio (`InsufficientBalanceException`, etc.)
 - Anotado com `@Transactional` nas operações que alteram estado
 
 ### Repository
@@ -132,19 +132,19 @@ Todas as respostas de erro seguem o formato RFC 7807 (Problem Details):
 
 ```json
 {
-  "tipo": "https://sifu.gov.br/erros/saldo-insuficiente",
-  "titulo": "Saldo insuficiente",
+  "type": "https://sifu.gov.br/errors/insufficient-balance",
+  "title": "Insufficient balance",
   "status": 422,
-  "detalhe": "Saldo disponível da dotação 42 é R$ 1.000,00; valor solicitado: R$ 1.500,00",
-  "instancia": "/api/v1/notas-empenho"
+  "detail": "Saldo disponível da dotação 42 é R$ 1.000,00; valor solicitado: R$ 1.500,00",
+  "instance": "/api/v1/commitments"
 }
 ```
 
 | Exceção | HTTP Status |
 |---|---|
-| Entidade não encontrada | 404 |
-| Saldo insuficiente | 422 |
-| Transição de estado inválida | 422 |
+| `EntityNotFoundException` | 404 |
+| `InsufficientBalanceException` | 422 |
+| `InvalidStateTransitionException` | 422 |
 | Violação de regra de negócio | 422 |
 | Validação de campo | 400 |
 | Não autenticado | 401 |
@@ -153,16 +153,16 @@ Todas as respostas de erro seguem o formato RFC 7807 (Problem Details):
 
 ## Auditoria via AOP
 
-O `AuditoriaInterceptor` usa Spring AOP para interceptar chamadas de service marcadas com `@Auditavel`:
+O `AuditInterceptor` usa Spring AOP para interceptar chamadas de service marcadas com `@Auditavel`:
 
 ```java
-// Exemplo de uso
-@Auditavel(operacao = "EMITIR_NE", entidade = "NotaEmpenho")
-public NotaEmpenho emitir(RequisicaoNotaEmpenho requisicao) { ... }
+// Example usage
+@Auditavel(operation = "ISSUE_COMMITMENT", entity = "Commitment")
+public Commitment issue(CommitmentRequest request) { ... }
 ```
 
 O interceptor captura automaticamente:
-- Usuário logado (via `ContextoSeguranca`)
+- Usuário logado (via `SecurityContext`)
 - IP da requisição (via `HttpServletRequest`)
 - Estado antes e depois (serializado em JSON)
 - Timestamp
@@ -171,7 +171,7 @@ O interceptor captura automaticamente:
 
 ```
 Endpoints públicos:    POST /api/v1/auth/login
-                       POST /api/v1/auth/recuperar-senha
+                       POST /api/v1/auth/recover-password
                        GET  /swagger-ui/**
                        GET  /api-docs/**
                        GET  /actuator/health
@@ -179,9 +179,9 @@ Endpoints públicos:    POST /api/v1/auth/login
 Endpoints autenticados: todos os demais /api/v1/**
 ```
 
-Dois tipos de token aceitos pelo `JwtFiltro`:
-- **JWT de sessão**: emitido pelo login, expira em 8h, armazena `login` e `tipo=SESSAO`
-- **Token de integração**: emitido via `/api/v1/tokens`, expira conforme configurado, armazena `login` e `tipo=INTEGRACAO`
+Dois tipos de token aceitos pelo `JwtFilter`:
+- **JWT de sessão**: emitido pelo login, expira em 8h, armazena `login` e `type=SESSION`
+- **Token de integração**: emitido via `/api/v1/tokens`, expira conforme configurado, armazena `login` e `type=INTEGRATION`
 
 ## Paginação
 
@@ -189,20 +189,20 @@ Todas as listagens aceitam os parâmetros:
 
 | Parâmetro | Padrão | Máximo |
 |---|---|---|
-| `pagina` | 0 | — |
-| `tamanho` | 20 | 100 |
-| `ordenarPor` | depende do endpoint | — |
-| `direcao` | `ASC` | `ASC` ou `DESC` |
+| `page` | 0 | — |
+| `size` | 20 | 100 |
+| `sortBy` | depende do endpoint | — |
+| `direction` | `ASC` | `ASC` ou `DESC` |
 
 Resposta padrão de listagem:
 
 ```json
 {
-  "conteudo": [...],
-  "pagina": 0,
-  "tamanho": 20,
-  "totalElementos": 143,
-  "totalPaginas": 8,
-  "ultima": false
+  "content": [...],
+  "page": 0,
+  "size": 20,
+  "totalElements": 143,
+  "totalPages": 8,
+  "last": false
 }
 ```

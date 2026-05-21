@@ -49,6 +49,7 @@
 | Entidade `Gestao` (requirements/02) | Não implementada na Fase 1 | Em SIAFI, "código de gestão" é um campo da célula orçamentária (5 dígitos), mas foi omitido intencionalmente para simplificar o escopo educacional. Pode ser adicionado como classificação orçamentária em fase futura se necessário. |
 | Entidade `PerfilAcesso` (requirements/02) | Não implementada | Todos os usuários têm acesso ADMIN completo — simplificação proposital conforme requirements/01. |
 | Gestão de exercício | Sem entidade própria | O exercício é tratado como campo inteiro nas entidades — não há necessidade de "abrir" ou "fechar" exercício no escopo atual. |
+| Idioma do Código | Inglês | Melhora legibilidade para colaboração e desenvolvimento assistido por IA; termos de domínio (NC, NE, UG, etc.) mantidos como siglas nos comentários/documentação |
 
 ## Dependências entre Documentos
 

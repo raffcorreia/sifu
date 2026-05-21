@@ -31,21 +31,21 @@ Testes **nunca** são escritos após a conclusão da fase — fazem parte da ent
 
 **Java — correto:**
 ```java
-class NotaEmpenhoServiceTest {
+class CommitmentServiceTest {
 
-    static final BigDecimal VALOR_EMPENHO          = BigDecimal.valueOf(80_000);
-    static final BigDecimal SALDO_SUFICIENTE        = BigDecimal.valueOf(500_000);
-    static final BigDecimal SALDO_INSUFICIENTE      = BigDecimal.valueOf(50_000);
-    static final BigDecimal VALOR_REFORCO           = BigDecimal.valueOf(20_000);
-    static final String     NUMERO_PROCESSO         = "23000.001234/2025-01";
-    static final String     DESCRICAO_OBJETO        = "Aquisição de equipamentos de TI";
-    static final Integer    EXERCICIO_CORRENTE      = 2025;
-    static final Integer    EXERCICIO_ANTERIOR      = 2024;
+    static final BigDecimal COMMITMENT_VALUE     = BigDecimal.valueOf(80_000);
+    static final BigDecimal SUFFICIENT_BALANCE   = BigDecimal.valueOf(500_000);
+    static final BigDecimal INSUFFICIENT_BALANCE = BigDecimal.valueOf(50_000);
+    static final BigDecimal SUPPLEMENT_VALUE     = BigDecimal.valueOf(20_000);
+    static final String     PROCESS_NUMBER       = "23000.001234/2025-01";
+    static final String     OBJECT_DESCRIPTION   = "Aquisição de equipamentos de TI";
+    static final Integer    CURRENT_FISCAL_YEAR  = 2025;
+    static final Integer    PREVIOUS_FISCAL_YEAR = 2024;
 
     @Test
-    void deveEmitirEmpenhoQuandoSaldoSuficiente() {
-        var dotacao = dotacaoComSaldo(SALDO_SUFICIENTE);
-        var requisicao = requisicaoNE(VALOR_EMPENHO, NUMERO_PROCESSO);
+    void shouldIssueCommitmentWhenBalanceSufficient() {
+        var dotacao = allotmentWithBalance(SUFFICIENT_BALANCE);
+        var requisicao = commitmentRequest(COMMITMENT_VALUE, PROCESS_NUMBER);
         // ...
     }
 }
@@ -54,19 +54,19 @@ class NotaEmpenhoServiceTest {
 **Java — errado:**
 ```java
 @Test
-void deveEmitirEmpenho() {
-    var dotacao = dotacaoComSaldo(new BigDecimal("500000")); // ← magic number
-    var requisicao = new RequisicaoNE(80000.0, "23000.001234/2025-01"); // ← magic values
+void shouldIssueCommitment() {
+    var dotacao = allotmentWithBalance(new BigDecimal("500000")); // ← magic number
+    var requisicao = new CreateCommitmentRequest(80000.0, "23000.001234/2025-01"); // ← magic values
 }
 ```
 
 **JavaScript/TypeScript — correto:**
 ```js
-const VALOR_EMPENHO        = 80_000;
-const SALDO_SUFICIENTE     = 500_000;
-const NOME_FORNECEDOR      = 'Empresa ABC Ltda';
-const CNPJ_FORNECEDOR      = '12345678000190';
-const MENSAGEM_SALDO_INSUF = 'Saldo insuficiente';
+const COMMITMENT_VALUE           = 80_000;
+const SUFFICIENT_BALANCE         = 500_000;
+const VENDOR_NAME                = 'Empresa ABC Ltda';
+const VENDOR_CNPJ                = '12345678000190';
+const INSUFFICIENT_BALANCE_MESSAGE = 'Saldo insuficiente';
 
 test('deve exibir erro quando saldo for insuficiente', () => {
     // usa constantes acima
@@ -75,21 +75,21 @@ test('deve exibir erro quando saldo for insuficiente', () => {
 
 ### Nomenclatura de Testes
 
-Padrão: `deve[Resultado]Quando[Condição]`
+Padrão: `should[Result]When[Condition]`
 
 ```java
 // Backend
-void deveEmitirEmpenhoQuandoSaldoSuficiente()
-void deveLancarExcecaoQuandoSaldoInsuficiente()
-void deveImpedirAnulacaoParcialDeEmpenhoOrdinario()
-void deveImpedirEstornoNLComOBVinculada()
-void deveBloquerContaApos5TentativasInvalidas()
+void shouldIssueCommitmentWhenBalanceSufficient()
+void shouldThrowExceptionWhenBalanceInsufficient()
+void shouldPreventPartialVoidingOfOrdinaryCommitment()
+void shouldPreventSettlementReversalWithLinkedPaymentOrder()
+void shouldLockAccountAfter5InvalidAttempts()
 
 // Frontend
-test('deve exibir saldo disponível ao selecionar dotação')
-test('deve desabilitar botão Emitir durante requisição')
-test('deve exibir modal de confirmação ao anular empenho')
-test('deve limpar formulário após emissão bem-sucedida')
+test('should display available balance when selecting allotment')
+test('should disable Issue button during request')
+test('should show confirmation modal when voiding commitment')
+test('should clear form after successful issuance')
 ```
 
 ---
@@ -102,29 +102,29 @@ Testam a camada de Service em isolamento. Repositórios são mockados com Mockit
 
 **Estrutura de cada teste unitário:**
 ```java
-class NotaEmpenhoServiceTest {
+class CommitmentServiceTest {
 
     // 1. Constantes no topo
-    static final BigDecimal VALOR_EMPENHO     = BigDecimal.valueOf(80_000);
-    static final BigDecimal SALDO_SUFICIENTE  = BigDecimal.valueOf(500_000);
+    static final BigDecimal COMMITMENT_VALUE   = BigDecimal.valueOf(80_000);
+    static final BigDecimal SUFFICIENT_BALANCE = BigDecimal.valueOf(500_000);
 
     // 2. Mocks e instância do service
-    @Mock NotaEmpenhoRepository repositorio;
-    @Mock DotacaoService dotacaoService;
-    @InjectMocks NotaEmpenhoService service;
+    @Mock CommitmentRepository repositorio;
+    @Mock AllotmentService allotmentService;
+    @InjectMocks CommitmentService service;
 
     // 3. Testes
     @Test
-    void deveEmitirEmpenhoQuandoSaldoSuficiente() {
+    void shouldIssueCommitmentWhenBalanceSufficient() {
         // Arrange
-        when(dotacaoService.consultarSaldo(anyLong()))
-            .thenReturn(SALDO_SUFICIENTE);
+        when(allotmentService.consultarSaldo(anyLong()))
+            .thenReturn(SUFFICIENT_BALANCE);
 
         // Act
-        var resultado = service.emitir(requisicaoPadrao(VALOR_EMPENHO));
+        var result = service.issue(defaultRequest(COMMITMENT_VALUE));
 
         // Assert
-        assertThat(resultado.status()).isEqualTo(StatusNE.A_LIQUIDAR);
+        assertThat(result.status()).isEqualTo(CommitmentStatus.PENDING_SETTLEMENT);
         verify(repositorio).save(any());
     }
 }
@@ -138,16 +138,16 @@ Testam Controllers + Services + Repositórios com banco PostgreSQL real em conta
 
 | Fluxo | Casos |
 |---|---|
-| Emissão NE | saldo suficiente; saldo insuficiente; dotação inativa; fornecedor inativo |
-| Anulação NE | total sem liquidações; total com liquidação (deve falhar); parcial em ORDINARIO (deve falhar) |
-| Reforço NE | mesmo exercício; exercício diferente (deve falhar) |
-| Aprovação NC | saldo disponível; saldo insuficiente; NC já aprovada (deve falhar) |
-| Estorno NC | créditos não empenhados; créditos já empenhados no destino (deve falhar) |
-| Registro NL | dentro do limite; acima do empenhado (deve falhar); parcial em ORDINARIO (deve falhar) |
-| Estorno NL | sem OB vinculada; com OB vinculada (deve falhar) |
-| Emissão OB | liquidação registrada; liquidação estornada (deve falhar) |
-| Login | credenciais válidas; credenciais inválidas; conta bloqueada |
-| Token | geração; revogação; uso após revogação (deve falhar); token expirado (deve falhar) |
+| Commitment issuance | sufficient balance; insufficient balance; inactive allotment; inactive vendor |
+| Commitment voiding | total without settlements; total with settlement (must fail); partial on ORDINARIO (must fail) |
+| Commitment reinforcement | same fiscal year; different fiscal year (must fail) |
+| Credit note approval | available balance; insufficient balance; already approved (must fail) |
+| Credit note reversal | credits not committed; credits already committed at destination (must fail) |
+| Settlement registration | within limit; above committed (must fail); partial on ORDINARIO (must fail) |
+| Settlement reversal | without linked payment order; with linked payment order (must fail) |
+| Payment order issuance | registered settlement; reversed settlement (must fail) |
+| Login | valid credentials; invalid credentials; locked account |
+| Token | generation; revocation; use after revocation (must fail); expired token (must fail) |
 
 ### Testes de Validação de API (MockMvc)
 
@@ -164,12 +164,12 @@ Testam Controllers + Services + Repositórios com banco PostgreSQL real em conta
 
 ```js
 // Constantes no topo do arquivo de teste
-const NUMERO_EMPENHO  = '2025MIN_ED000001';
-const VALOR_EMPENHO   = 80_000;
-const NOME_FORNECEDOR = 'Empresa ABC Ltda';
-const ERRO_SALDO      = 'Saldo insuficiente';
+const COMMITMENT_NUMBER = '2025MIN_ED000001';
+const COMMITMENT_VALUE  = 80_000;
+const VENDOR_NAME       = 'Empresa ABC Ltda';
+const ERRO_SALDO        = 'Saldo insuficiente';
 
-describe('FormularioNotaEmpenho', () => {
+describe('CommitmentForm', () => {
     test('deve exibir saldo ao selecionar dotação', async () => { ... });
     test('deve desabilitar botão durante envio', async () => { ... });
     test('deve exibir erro de saldo insuficiente', async () => { ... });

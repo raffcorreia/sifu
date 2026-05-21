@@ -48,7 +48,7 @@ Consultas devem responder em menos de 2 segundos para volumes de dados médios.
 - Testes automatizados devem evitar magic strings e magic numbers; valores de domínio devem ser declarados em constantes nomeadas.
 - Cobertura mínima de testes no backend: **80%** geral.
 - Fluxos críticos (NC, NE, Liquidação, OB, autenticação e tokens) devem ter cobertura mínima de **90%**.
-- Código-fonte deve ser escrito em português (nomes de classes, métodos, funções, variáveis, arquivos técnicos e testes). Exceção: textos de interface exibidos ao usuário final também devem estar em português.
+- Código-fonte deve ser escrito em inglês (nomes de classes, métodos, funções, variáveis, arquivos técnicos e testes). Exceção: textos de interface exibidos ao usuário final devem estar em português.
 - Pull requests devem incluir evidência de execução dos testes e passar no pipeline de CI (build + testes) antes do merge.
 
 ## Confiabilidade

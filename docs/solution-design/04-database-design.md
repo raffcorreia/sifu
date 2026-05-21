@@ -9,8 +9,8 @@
 - Chaves primárias: `BIGSERIAL` com nome `id`
 - Timestamps: `TIMESTAMPTZ` (com fuso horário) em todas as tabelas
 - Valores monetários: `NUMERIC(15,2)` — escala suficiente para orçamentos públicos
-- Status: `VARCHAR` com `CHECK` constraint — evita tabelas de lookup para valores simples
-- Exclusão: nunca física; campo `status` com valor `INATIVO` ou `ANULADA` etc.
+- Status: `VARCHAR` com `CHECK` constraint — evita tabelas de lookup para valores simples; valores de status são strings em inglês (ex: `'ACTIVE'`, `'CANCELLED'`)
+- Exclusão: nunca física; campo `status` com valor `'INACTIVE'` ou `'VOIDED'` etc.
 
 ## Schema Completo
 
@@ -19,229 +19,228 @@
 -- SEGURANÇA
 -- ============================================================
 
-CREATE TABLE usuarios (
+CREATE TABLE users (
     id            BIGSERIAL PRIMARY KEY,
     login         VARCHAR(50)  NOT NULL UNIQUE,
-    nome          VARCHAR(200) NOT NULL,
+    name          VARCHAR(200) NOT NULL,
     email         VARCHAR(200) NOT NULL UNIQUE,
-    senha_hash    VARCHAR(200) NOT NULL,
-    tentativas_login  INTEGER  NOT NULL DEFAULT 0,
-    bloqueado_ate TIMESTAMPTZ,
-    status        VARCHAR(10)  NOT NULL DEFAULT 'ATIVO'
-                  CHECK (status IN ('ATIVO', 'INATIVO')),
-    criado_em     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    atualizado_em TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    password_hash VARCHAR(200) NOT NULL,
+    login_attempts    INTEGER  NOT NULL DEFAULT 0,
+    locked_until  TIMESTAMPTZ,
+    status        VARCHAR(10)  NOT NULL DEFAULT 'ACTIVE'
+                  CHECK (status IN ('ACTIVE', 'INACTIVE')),
+    created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE tokens_integracao (
+CREATE TABLE integration_tokens (
     id              BIGSERIAL PRIMARY KEY,
-    usuario_id      BIGINT       NOT NULL REFERENCES usuarios(id),
-    nome            VARCHAR(100) NOT NULL,
+    user_id         BIGINT       NOT NULL REFERENCES users(id),
+    name            VARCHAR(100) NOT NULL,
     token_hash      VARCHAR(200) NOT NULL UNIQUE,
-    data_criacao    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    data_expiracao  TIMESTAMPTZ  NOT NULL,
-    status          VARCHAR(15)  NOT NULL DEFAULT 'ATIVO'
-                    CHECK (status IN ('ATIVO', 'REVOGADO', 'EXPIRADO')),
-    criado_em       TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    expires_at      TIMESTAMPTZ  NOT NULL,
+    status          VARCHAR(15)  NOT NULL DEFAULT 'ACTIVE'
+                    CHECK (status IN ('ACTIVE', 'REVOKED', 'EXPIRED'))
 );
 
-CREATE TABLE tokens_redefinicao_senha (
+CREATE TABLE password_reset_tokens (
     id          BIGSERIAL    PRIMARY KEY,
-    usuario_id  BIGINT       NOT NULL REFERENCES usuarios(id),
+    user_id     BIGINT       NOT NULL REFERENCES users(id),
     token       VARCHAR(100) NOT NULL UNIQUE,
     expira_em   TIMESTAMPTZ  NOT NULL,
     usado       BOOLEAN      NOT NULL DEFAULT FALSE,
-    criado_em   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
 -- ============================================================
 -- ESTRUTURA ORGANIZACIONAL
 -- ============================================================
 
-CREATE TABLE unidades_gestoras (
+CREATE TABLE managing_units (
     id                BIGSERIAL PRIMARY KEY,
-    codigo_ug         VARCHAR(20)  NOT NULL UNIQUE,
-    nome              VARCHAR(200) NOT NULL,
-    orgao_superior_id BIGINT       REFERENCES unidades_gestoras(id),
-    descricao         TEXT,
-    status            VARCHAR(10)  NOT NULL DEFAULT 'ATIVO'
-                      CHECK (status IN ('ATIVO', 'INATIVO')),
-    criado_em         TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    atualizado_em     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    unit_code         VARCHAR(20)  NOT NULL UNIQUE,
+    name              VARCHAR(200) NOT NULL,
+    parent_unit_id    BIGINT       REFERENCES managing_units(id),
+    description       TEXT,
+    status            VARCHAR(10)  NOT NULL DEFAULT 'ACTIVE'
+                      CHECK (status IN ('ACTIVE', 'INACTIVE')),
+    created_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
 -- ============================================================
 -- CLASSIFICAÇÕES ORÇAMENTÁRIAS
 -- ============================================================
 
-CREATE TABLE acoes_orcamentarias (
+CREATE TABLE budget_actions (
     id            BIGSERIAL PRIMARY KEY,
-    codigo        VARCHAR(20)  NOT NULL,
-    descricao     VARCHAR(300) NOT NULL,
-    exercicio     INTEGER      NOT NULL,
-    status        VARCHAR(10)  NOT NULL DEFAULT 'ATIVO'
-                  CHECK (status IN ('ATIVO', 'INATIVO')),
-    criado_em     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    atualizado_em TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    UNIQUE (codigo, exercicio)
+    code          VARCHAR(20)  NOT NULL,
+    description   VARCHAR(300) NOT NULL,
+    fiscal_year   INTEGER      NOT NULL,
+    status        VARCHAR(10)  NOT NULL DEFAULT 'ACTIVE'
+                  CHECK (status IN ('ACTIVE', 'INACTIVE')),
+    created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    UNIQUE (code, fiscal_year)
 );
 
-CREATE TABLE planos_internos (
+CREATE TABLE internal_plans (
     id                    BIGSERIAL PRIMARY KEY,
-    codigo                VARCHAR(20)  NOT NULL UNIQUE,
-    descricao             VARCHAR(300) NOT NULL,
-    acao_orcamentaria_id  BIGINT       NOT NULL REFERENCES acoes_orcamentarias(id),
-    status                VARCHAR(10)  NOT NULL DEFAULT 'ATIVO'
-                          CHECK (status IN ('ATIVO', 'INATIVO')),
-    criado_em             TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    atualizado_em         TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    code                  VARCHAR(20)  NOT NULL UNIQUE,
+    description           VARCHAR(300) NOT NULL,
+    budget_action_id      BIGINT       NOT NULL REFERENCES budget_actions(id),
+    status                VARCHAR(10)  NOT NULL DEFAULT 'ACTIVE'
+                          CHECK (status IN ('ACTIVE', 'INACTIVE')),
+    created_at            TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at            TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE naturezas_despesa (
+CREATE TABLE expense_natures (
     id            BIGSERIAL PRIMARY KEY,
-    codigo        VARCHAR(20)  NOT NULL UNIQUE,
-    descricao     VARCHAR(300) NOT NULL,
+    code          VARCHAR(20)  NOT NULL UNIQUE,
+    description   VARCHAR(300) NOT NULL,
     tipo          VARCHAR(50),
-    status        VARCHAR(10)  NOT NULL DEFAULT 'ATIVO'
-                  CHECK (status IN ('ATIVO', 'INATIVO')),
-    criado_em     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    atualizado_em TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    status        VARCHAR(10)  NOT NULL DEFAULT 'ACTIVE'
+                  CHECK (status IN ('ACTIVE', 'INACTIVE')),
+    created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE fontes_recurso (
+CREATE TABLE funding_sources (
     id            BIGSERIAL PRIMARY KEY,
-    codigo        VARCHAR(20)  NOT NULL UNIQUE,
-    descricao     VARCHAR(300) NOT NULL,
-    status        VARCHAR(10)  NOT NULL DEFAULT 'ATIVO'
-                  CHECK (status IN ('ATIVO', 'INATIVO')),
-    criado_em     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    atualizado_em TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    code          VARCHAR(20)  NOT NULL UNIQUE,
+    description   VARCHAR(300) NOT NULL,
+    status        VARCHAR(10)  NOT NULL DEFAULT 'ACTIVE'
+                  CHECK (status IN ('ACTIVE', 'INACTIVE')),
+    created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE ptres (
     id            BIGSERIAL PRIMARY KEY,
-    codigo        VARCHAR(20)  NOT NULL UNIQUE,
-    descricao     VARCHAR(300) NOT NULL,
-    status        VARCHAR(10)  NOT NULL DEFAULT 'ATIVO'
-                  CHECK (status IN ('ATIVO', 'INATIVO')),
-    criado_em     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    atualizado_em TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    code          VARCHAR(20)  NOT NULL UNIQUE,
+    description   VARCHAR(300) NOT NULL,
+    status        VARCHAR(10)  NOT NULL DEFAULT 'ACTIVE'
+                  CHECK (status IN ('ACTIVE', 'INACTIVE')),
+    created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
 -- ============================================================
 -- ORÇAMENTO
 -- ============================================================
 
-CREATE TABLE dotacoes_orcamentarias (
+CREATE TABLE budget_allotments (
     id                    BIGSERIAL       PRIMARY KEY,
-    ug_id                 BIGINT          NOT NULL REFERENCES unidades_gestoras(id),
-    acao_orcamentaria_id  BIGINT          NOT NULL REFERENCES acoes_orcamentarias(id),
-    plano_interno_id      BIGINT          REFERENCES planos_internos(id),
-    natureza_despesa_id   BIGINT          NOT NULL REFERENCES naturezas_despesa(id),
-    fonte_recurso_id      BIGINT          NOT NULL REFERENCES fontes_recurso(id),
+    unit_id               BIGINT          NOT NULL REFERENCES managing_units(id),
+    budget_action_id      BIGINT          NOT NULL REFERENCES budget_actions(id),
+    internal_plan_id      BIGINT          REFERENCES internal_plans(id),
+    expense_nature_id     BIGINT          NOT NULL REFERENCES expense_natures(id),
+    funding_source_id     BIGINT          NOT NULL REFERENCES funding_sources(id),
     ptres_id              BIGINT          NOT NULL REFERENCES ptres(id),
-    valor_inicial         NUMERIC(15,2)   NOT NULL CHECK (valor_inicial >= 0),
-    valor_atualizado      NUMERIC(15,2)   NOT NULL CHECK (valor_atualizado >= 0),
-    exercicio             INTEGER         NOT NULL,
-    criado_em             TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
-    atualizado_em         TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+    initial_value         NUMERIC(15,2)   NOT NULL CHECK (initial_value >= 0),
+    updated_value         NUMERIC(15,2)   NOT NULL CHECK (updated_value >= 0),
+    fiscal_year           INTEGER         NOT NULL,
+    created_at            TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    updated_at            TIMESTAMPTZ     NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE notas_credito (
-    id               BIGSERIAL     PRIMARY KEY,
-    numero_nc        VARCHAR(20)   NOT NULL UNIQUE,
-    ug_origem_id     BIGINT        NOT NULL REFERENCES unidades_gestoras(id),
-    ug_destino_id    BIGINT        NOT NULL REFERENCES unidades_gestoras(id),
-    dotacao_origem_id  BIGINT      NOT NULL REFERENCES dotacoes_orcamentarias(id),
-    dotacao_destino_id BIGINT      NOT NULL REFERENCES dotacoes_orcamentarias(id),
-    valor            NUMERIC(15,2) NOT NULL CHECK (valor > 0),
-    data_emissao     DATE          NOT NULL,
-    status           VARCHAR(20)   NOT NULL DEFAULT 'PENDENTE'
-                     CHECK (status IN ('PENDENTE', 'APROVADA', 'CANCELADA', 'ESTORNADA')),
-    criado_em        TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
-    atualizado_em    TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
-    CHECK (ug_origem_id <> ug_destino_id)
+CREATE TABLE credit_notes (
+    id                   BIGSERIAL     PRIMARY KEY,
+    credit_note_number   VARCHAR(20)   NOT NULL UNIQUE,
+    source_unit_id       BIGINT        NOT NULL REFERENCES managing_units(id),
+    target_unit_id       BIGINT        NOT NULL REFERENCES managing_units(id),
+    source_allotment_id  BIGINT        NOT NULL REFERENCES budget_allotments(id),
+    target_allotment_id  BIGINT        NOT NULL REFERENCES budget_allotments(id),
+    valor                NUMERIC(15,2) NOT NULL CHECK (valor > 0),
+    issue_date           DATE          NOT NULL,
+    status               VARCHAR(20)   NOT NULL DEFAULT 'PENDING'
+                         CHECK (status IN ('PENDING', 'APPROVED', 'CANCELLED', 'REVERSED')),
+    created_at           TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    updated_at           TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    CHECK (source_unit_id <> target_unit_id)
 );
 
 -- ============================================================
 -- EXECUÇÃO
 -- ============================================================
 
-CREATE TABLE fornecedores (
-    id            BIGSERIAL    PRIMARY KEY,
-    cnpj          VARCHAR(14)  NOT NULL UNIQUE,
-    nome          VARCHAR(200) NOT NULL,
-    tipo_pessoa   VARCHAR(10)  NOT NULL CHECK (tipo_pessoa IN ('JURIDICA', 'FISICA')),
-    banco         VARCHAR(10),
-    agencia       VARCHAR(10),
-    conta_corrente VARCHAR(20),
-    status        VARCHAR(10)  NOT NULL DEFAULT 'ATIVO'
-                  CHECK (status IN ('ATIVO', 'INATIVO')),
-    criado_em     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    atualizado_em TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+CREATE TABLE vendors (
+    id             BIGSERIAL    PRIMARY KEY,
+    cnpj           VARCHAR(14)  NOT NULL UNIQUE,
+    name           VARCHAR(200) NOT NULL,
+    person_type    VARCHAR(15)  NOT NULL CHECK (person_type IN ('LEGAL_ENTITY', 'INDIVIDUAL')),
+    bank           VARCHAR(10),
+    branch         VARCHAR(10),
+    account_number VARCHAR(20),
+    status         VARCHAR(10)  NOT NULL DEFAULT 'ACTIVE'
+                   CHECK (status IN ('ACTIVE', 'INACTIVE')),
+    created_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE notas_empenho (
-    id               BIGSERIAL     PRIMARY KEY,
-    numero_empenho   VARCHAR(20)   NOT NULL UNIQUE,
-    ug_id            BIGINT        NOT NULL REFERENCES unidades_gestoras(id),
-    dotacao_id       BIGINT        NOT NULL REFERENCES dotacoes_orcamentarias(id),
-    fornecedor_id    BIGINT        NOT NULL REFERENCES fornecedores(id),
-    valor            NUMERIC(15,2) NOT NULL CHECK (valor > 0),
-    data_emissao     DATE          NOT NULL,
-    tipo_empenho     VARCHAR(15)   NOT NULL
-                     CHECK (tipo_empenho IN ('ORDINARIO', 'ESTIMATIVO', 'GLOBAL')),
-    status           VARCHAR(30)   NOT NULL DEFAULT 'A_LIQUIDAR'
-                     CHECK (status IN ('A_LIQUIDAR', 'PARCIALMENTE_LIQUIDADA', 'LIQUIDADA', 'PAGA', 'ANULADA')),
-    processo         VARCHAR(50),
-    descricao_objeto TEXT,
-    criado_em        TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
-    atualizado_em    TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+CREATE TABLE commitments (
+    id                  BIGSERIAL     PRIMARY KEY,
+    commitment_number   VARCHAR(20)   NOT NULL UNIQUE,
+    unit_id             BIGINT        NOT NULL REFERENCES managing_units(id),
+    allotment_id        BIGINT        NOT NULL REFERENCES budget_allotments(id),
+    vendor_id           BIGINT        NOT NULL REFERENCES vendors(id),
+    valor               NUMERIC(15,2) NOT NULL CHECK (valor > 0),
+    issue_date          DATE          NOT NULL,
+    commitment_type     VARCHAR(15)   NOT NULL
+                        CHECK (commitment_type IN ('ORDINARY', 'ESTIMATED', 'GLOBAL')),
+    status              VARCHAR(30)   NOT NULL DEFAULT 'PENDING_SETTLEMENT'
+                        CHECK (status IN ('PENDING_SETTLEMENT', 'PARTIALLY_SETTLED', 'SETTLED', 'PAID', 'VOIDED')),
+    process_number      VARCHAR(50),
+    object_description  TEXT,
+    created_at          TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ   NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE liquidacoes_empenho (
+CREATE TABLE settlements (
     id                 BIGSERIAL     PRIMARY KEY,
-    numero_liquidacao  VARCHAR(20)   NOT NULL UNIQUE,
-    nota_empenho_id    BIGINT        NOT NULL REFERENCES notas_empenho(id),
+    settlement_number  VARCHAR(20)   NOT NULL UNIQUE,
+    commitment_id      BIGINT        NOT NULL REFERENCES commitments(id),
     valor              NUMERIC(15,2) NOT NULL CHECK (valor > 0),
-    data_liquidacao    DATE          NOT NULL,
-    documento_fiscal   VARCHAR(50)   NOT NULL,
-    status             VARCHAR(20)   NOT NULL DEFAULT 'REGISTRADA'
-                       CHECK (status IN ('REGISTRADA', 'ESTORNADA')),
-    criado_em          TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
-    atualizado_em      TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+    settlement_date    DATE          NOT NULL,
+    fiscal_document    VARCHAR(50)   NOT NULL,
+    status             VARCHAR(20)   NOT NULL DEFAULT 'REGISTERED'
+                       CHECK (status IN ('REGISTERED', 'REVERSED')),
+    created_at         TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    updated_at         TIMESTAMPTZ   NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE ordens_bancarias (
-    id             BIGSERIAL     PRIMARY KEY,
-    numero_ob      VARCHAR(20)   NOT NULL UNIQUE,
-    liquidacao_id  BIGINT        NOT NULL REFERENCES liquidacoes_empenho(id),
-    valor          NUMERIC(15,2) NOT NULL CHECK (valor > 0),
-    data_pagamento DATE,
-    banco          VARCHAR(10)   NOT NULL,
-    agencia        VARCHAR(10)   NOT NULL,
-    conta_destino  VARCHAR(20)   NOT NULL,
-    status         VARCHAR(20)   NOT NULL DEFAULT 'EMITIDA'
-                   CHECK (status IN ('EMITIDA', 'PROCESSADA', 'CANCELADA')),
-    criado_em      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
-    atualizado_em  TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+CREATE TABLE payment_orders (
+    id                   BIGSERIAL     PRIMARY KEY,
+    payment_order_number VARCHAR(20)   NOT NULL UNIQUE,
+    settlement_id        BIGINT        NOT NULL REFERENCES settlements(id),
+    valor                NUMERIC(15,2) NOT NULL CHECK (valor > 0),
+    payment_date         DATE,
+    bank                 VARCHAR(10)   NOT NULL,
+    branch               VARCHAR(10)   NOT NULL,
+    destination_account  VARCHAR(20)   NOT NULL,
+    status               VARCHAR(20)   NOT NULL DEFAULT 'ISSUED'
+                         CHECK (status IN ('ISSUED', 'PROCESSED', 'CANCELLED')),
+    created_at           TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    updated_at           TIMESTAMPTZ   NOT NULL DEFAULT NOW()
 );
 
 -- ============================================================
 -- AUDITORIA
 -- ============================================================
 
-CREATE TABLE auditoria (
+CREATE TABLE audit_log (
     id            BIGSERIAL    PRIMARY KEY,
-    usuario_login VARCHAR(50)  NOT NULL,
-    data_hora     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    operacao      VARCHAR(100) NOT NULL,
-    entidade      VARCHAR(100) NOT NULL,
-    entidade_id   VARCHAR(50),
-    dados_antes   JSONB,
-    dados_depois  JSONB,
-    ip            VARCHAR(45)  NOT NULL,
-    ug_id         BIGINT       REFERENCES unidades_gestoras(id)
+    user_login    VARCHAR(50)  NOT NULL,
+    event_time    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    operation     VARCHAR(100) NOT NULL,
+    entity        VARCHAR(100) NOT NULL,
+    entity_id     VARCHAR(50),
+    data_before   JSONB,
+    data_after    JSONB,
+    ip_address    VARCHAR(45)  NOT NULL,
+    unit_id       BIGINT       REFERENCES managing_units(id)
 );
 ```
 
@@ -249,25 +248,25 @@ CREATE TABLE auditoria (
 
 ```sql
 -- Buscas frequentes por código
-CREATE INDEX idx_ug_codigo           ON unidades_gestoras(codigo_ug);
-CREATE INDEX idx_ug_superior         ON unidades_gestoras(orgao_superior_id);
-CREATE INDEX idx_fornecedor_cnpj     ON fornecedores(cnpj);
-CREATE INDEX idx_ne_numero           ON notas_empenho(numero_empenho);
-CREATE INDEX idx_ne_dotacao          ON notas_empenho(dotacao_id);
-CREATE INDEX idx_ne_status           ON notas_empenho(status);
-CREATE INDEX idx_ne_ug_exercicio     ON notas_empenho(ug_id, data_emissao);
-CREATE INDEX idx_nc_numero           ON notas_credito(numero_nc);
-CREATE INDEX idx_nc_status           ON notas_credito(status);
-CREATE INDEX idx_nl_ne               ON liquidacoes_empenho(nota_empenho_id);
-CREATE INDEX idx_ob_liquidacao       ON ordens_bancarias(liquidacao_id);
+CREATE INDEX idx_unit_code              ON managing_units(unit_code);
+CREATE INDEX idx_unit_parent            ON managing_units(parent_unit_id);
+CREATE INDEX idx_vendor_cnpj            ON vendors(cnpj);
+CREATE INDEX idx_commitment_number      ON commitments(commitment_number);
+CREATE INDEX idx_commitment_allotment   ON commitments(allotment_id);
+CREATE INDEX idx_commitment_status      ON commitments(status);
+CREATE INDEX idx_commitment_unit_year   ON commitments(unit_id, issue_date);
+CREATE INDEX idx_credit_note_number     ON credit_notes(credit_note_number);
+CREATE INDEX idx_credit_note_status     ON credit_notes(status);
+CREATE INDEX idx_settlement_commitment  ON settlements(commitment_id);
+CREATE INDEX idx_payment_order_settlement ON payment_orders(settlement_id);
 
 -- Auditoria: consultas por entidade e período
-CREATE INDEX idx_auditoria_entidade  ON auditoria(entidade, entidade_id);
-CREATE INDEX idx_auditoria_usuario   ON auditoria(usuario_login);
-CREATE INDEX idx_auditoria_data      ON auditoria(data_hora DESC);
+CREATE INDEX idx_audit_entity  ON audit_log(entity, entity_id);
+CREATE INDEX idx_audit_user    ON audit_log(user_login);
+CREATE INDEX idx_audit_time    ON audit_log(event_time DESC);
 
 -- Consulta de execução orçamentária (filtros compostos frequentes)
-CREATE INDEX idx_dotacao_ug_exercicio ON dotacoes_orcamentarias(ug_id, exercicio);
+CREATE INDEX idx_allotment_unit_year ON budget_allotments(unit_id, fiscal_year);
 ```
 
 ## Numeração de Documentos
@@ -282,12 +281,12 @@ Exemplo NE: 2025MIN_ED000001
 A sequência é mantida por uma tabela de controle:
 
 ```sql
-CREATE TABLE sequencias_documentos (
-    tipo_documento  VARCHAR(5)   NOT NULL,
-    ug_id           BIGINT       NOT NULL REFERENCES unidades_gestoras(id),
-    exercicio       INTEGER      NOT NULL,
-    ultimo_numero   INTEGER      NOT NULL DEFAULT 0,
-    PRIMARY KEY (tipo_documento, ug_id, exercicio)
+CREATE TABLE document_sequences (
+    document_type   VARCHAR(5)   NOT NULL,
+    unit_id         BIGINT       NOT NULL REFERENCES managing_units(id),
+    fiscal_year     INTEGER      NOT NULL,
+    last_number     INTEGER      NOT NULL DEFAULT 0,
+    PRIMARY KEY (document_type, unit_id, fiscal_year)
 );
 ```
 
@@ -298,12 +297,12 @@ O incremento usa `SELECT ... FOR UPDATE` na mesma transação da emissão do doc
 Localização: `src/main/resources/db/migration/`
 
 ```
-V1__criar_tabelas_seguranca.sql
-V2__criar_tabelas_estrutura.sql
-V3__criar_tabelas_classificacoes.sql
-V4__criar_tabelas_orcamento.sql
-V5__criar_tabelas_execucao.sql
-V6__criar_tabela_auditoria.sql
-V7__criar_indices.sql
-V8__dados_iniciais.sql       ← usuário admin padrão, UG raiz de exemplo
+V1__create_security_tables.sql
+V2__create_structure_tables.sql
+V3__create_classification_tables.sql
+V4__create_budget_tables.sql
+V5__create_execution_tables.sql
+V6__create_audit_table.sql
+V7__create_indexes.sql
+V8__initial_data.sql       ← usuário admin padrão, UG raiz de exemplo
 ```

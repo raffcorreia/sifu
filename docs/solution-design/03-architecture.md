@@ -26,7 +26,7 @@ Escolha justificada: o escopo educacional não justifica a complexidade operacio
 ┌──────────────────────────────────────────────────────────────────┐
 │                   Spring Boot (Java 21)                          │
 │  ┌──────────────────────────────────────────────────────────┐    │
-│  │              Spring Security (JWT Filter)                │    │
+│  │              Spring Security (JwtFilter)                │    │
 │  └──────────────────────────────────────────────────────────┘    │
 │  ┌─────────────────┐  ┌──────────────────┐  ┌──────────────┐    │
 │  │  Controllers    │  │    Services      │  │ Repositories │    │
@@ -34,7 +34,7 @@ Escolha justificada: o escopo educacional não justifica a complexidade operacio
 │  │  + Swagger UI   │  │   Negócio)       │  │  JPA)        │    │
 │  └─────────────────┘  └──────────────────┘  └──────┬───────┘    │
 │  ┌──────────────────────────────────────────────────────────┐    │
-│  │         AuditoriaInterceptor (AOP)                       │    │
+│  │         AuditInterceptor (AOP)                          │    │
 │  └──────────────────────────────────────────────────────────┘    │
 └──────────────────────────────────────────────────────────────────┘
                                 │ JDBC / Hibernate
@@ -54,44 +54,44 @@ Escolha justificada: o escopo educacional não justifica a complexidade operacio
 
 | Módulo | Pacote | Responsabilidade |
 |---|---|---|
-| Autenticação | `autenticacao` | Login, logout, recuperação de senha, emissão JWT |
-| Unidade Gestora | `unidadegestora` | CRUD de UGs e hierarquia |
-| Classificações | `classificacao` | AcaoOrcamentaria, PlanoInterno, ND, FonteRecurso, PTRES |
-| Dotação | `dotacao` | Dotações orçamentárias e crédito suplementar |
-| Nota de Crédito | `notacredito` | Emissão, aprovação, cancelamento e estorno de NC |
-| Nota de Empenho | `notaempenho` | Emissão, reforço e anulação de NE |
-| Liquidação | `liquidacao` | Registro e estorno de NL |
-| Ordem Bancária | `ordembancaria` | Emissão, processamento e cancelamento de OB |
-| Fornecedor | `fornecedor` | CRUD de fornecedores |
-| Consulta | `consulta` | Execução orçamentária e dashboard |
-| Usuário | `usuario` | Gestão de usuários e senhas |
+| Autenticação | `auth` | Login, logout, recuperação de senha, emissão JWT |
+| Unidade Gestora | `managingunit` | CRUD de UGs e hierarquia |
+| Classificações | `classification` | AcaoOrcamentaria, PlanoInterno, ND, FonteRecurso, PTRES |
+| Dotação | `allotment` | Dotações orçamentárias e crédito suplementar |
+| Nota de Crédito | `creditnote` | Emissão, aprovação, cancelamento e estorno de NC |
+| Nota de Empenho | `commitment` | Emissão, reforço e anulação de NE |
+| Liquidação | `settlement` | Registro e estorno de NL |
+| Ordem Bancária | `paymentorder` | Emissão, processamento e cancelamento de OB |
+| Fornecedor | `vendor` | CRUD de fornecedores |
+| Consulta | `query` | Execução orçamentária e dashboard |
+| Usuário | `user` | Gestão de usuários e senhas |
 | Token | `token` | Geração, listagem e revogação de tokens de integração |
-| Auditoria | `auditoria` | Consulta de logs de auditoria |
-| Comum | `comum` | Exceções, paginação, segurança transversal |
+| Auditoria | `auditlog` | Consulta de logs de auditoria |
+| Comum | `common` | Exceções, paginação, segurança transversal |
 
 ## Fluxo de Dados — Emissão de NE (exemplo)
 
 ```
 Usuário
-  │ POST /api/v1/notas-empenho
+  │ POST /api/v1/commitments
   ▼
-NotaEmpenhoController
+CommitmentController
   │ valida JWT via Spring Security
   │ deserializa DTO
   ▼
-NotaEmpenhoService
-  │ valida saldo da dotação (DotacaoService)
+CommitmentService
+  │ valida saldo da dotação (AllotmentService)
   │ gera número do empenho
-  │ persiste NotaEmpenho
-  │ AuditoriaInterceptor registra operação (AOP)
+  │ persiste Commitment
+  │ AuditInterceptor registra operação (AOP)
   ▼
-NotaEmpenhoRepository (JPA)
+CommitmentRepository (JPA)
   │
   ▼
 PostgreSQL
   │ transação ACID
   ▼
-NotaEmpenhoController
+CommitmentController
   │ retorna 201 Created + DTO de resposta
   ▼
 Usuário
@@ -101,7 +101,7 @@ Usuário
 
 ```
 1. POST /api/v1/auth/login { login, senha }
-2. Spring Security → AutenticacaoService → valida credenciais no banco
+2. Spring Security → AuthService → valida credenciais no banco
 3. Emite JWT (accessToken, 8h) + registra na auditoria
 4. Cliente armazena JWT no localStorage/memória
 5. Cada requisição subsequente inclui: Authorization: Bearer <token>
@@ -110,7 +110,7 @@ Usuário
 Para API externa:
 1. POST /api/v1/tokens → gera token de integração (longo prazo)
 2. Cliente usa: Authorization: Bearer <integration-token>
-3. JwtFilter detecta tipo "INTEGRACAO" e aplica validação própria
+3. JwtFilter detecta tipo "INTEGRATION" e aplica validação própria
 ```
 
 ## Considerações de Performance

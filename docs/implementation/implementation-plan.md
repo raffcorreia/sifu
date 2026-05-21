@@ -104,10 +104,10 @@ O **SIFU (Sistema Integrado Financeiro Unificado)** é um sistema web educaciona
 | Regra | Descrição |
 |---|---|
 | RN-01 | Documentos financeiros não são editáveis após emissão |
-| RN-02 | Exclusão física nunca ocorre — status `INATIVO`/`ANULADA`/`CANCELADA` |
+| RN-02 | Exclusão física nunca ocorre — status `INACTIVE`/`VOIDED`/`CANCELLED` |
 | RN-03 | Numeração automática: `[exercício 4d][código UG sem traços][sequencial 6d]` (SELECT FOR UPDATE) |
 | RN-04 | Saldo = dotação_atualizada + NCs_aprovadas_recebidas − NCs_aprovadas_cedidas − NEs_ativas |
-| RN-05 | NE ORDINARIO: anulação somente total; ESTIMATIVO/GLOBAL: anulação parcial permitida |
+| RN-05 | NE ORDINARY: anulação somente total; ESTIMATED/GLOBAL: anulação parcial permitida |
 | RN-06 | Não é possível estornar NL com OB vinculada; não é possível anular NE com NL vigente |
 | RN-07 | NC deve ter UG origem ≠ UG destino |
 | RN-08 | Brute force: 5 tentativas inválidas → bloqueio de 15 minutos |
@@ -209,26 +209,26 @@ Nenhuma
 1. Criar a estrutura de diretórios do repositório conforme `12-deployment.md`:
    - `sifu/backend/`
    - `sifu/frontend/`
-2. Criar `.env.example` na raiz com os oito campos documentados em `12-deployment.md`: `DB_SENHA`, `JWT_SEGREDO`, `CORS_ORIGENS_PERMITIDAS`, `EMAIL_HOST`, `EMAIL_PORTA`, `EMAIL_USUARIO`, `EMAIL_SENHA`, `RATE_LIMIT_RPM` — todos com valores placeholder (sem credenciais reais)
+2. Criar `.env.example` na raiz com os oito campos documentados em `12-deployment.md`: `DB_PASSWORD`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`, `EMAIL_HOST`, `EMAIL_PORTA`, `EMAIL_USUARIO`, `EMAIL_PASSWORD`, `RATE_LIMIT_RPM` — todos com valores placeholder (sem credenciais reais)
 3. Criar `.env` na raiz (gitignored) com valores de desenvolvimento local
 4. Criar `docker-compose.yml` na raiz conforme o design em `12-deployment.md` com os três serviços: `banco` (PostgreSQL 16), `backend`, `frontend`
 5. Inicializar o projeto Maven em `backend/`:
    - `groupId: br.gov.sifu`, `artifactId: sifu-backend`, Java 21, encoding UTF-8
    - Adicionar todas as dependências listadas na seção "Pacotes Backend"
    - Configurar `maven-compiler-plugin` com `-Amapstruct.defaultComponentModel=spring` e `-Amapstruct.unmappedTargetPolicy=ERROR`
-   - Configurar `jacoco-maven-plugin` com threshold de cobertura geral 80% e pacotes críticos 90% (`autenticacao`, `notaempenho`, `liquidacao`, `ordembancaria`, `notacredito`)
+   - Configurar `jacoco-maven-plugin` com threshold de cobertura geral 80% e pacotes críticos 90% (`auth`, `commitment`, `settlement`, `paymentorder`, `creditnote`)
 6. Criar a estrutura completa de pacotes em `backend/src/main/java/br/gov/sifu/` conforme `05-backend-design.md`:
-   - `autenticacao/` (com subpacote `dto/`)
-   - `unidadegestora/` (com `dto/`)
-   - `classificacao/acao/`, `classificacao/planointerno/`, `classificacao/naturezadespesa/`, `classificacao/fonterecurso/`, `classificacao/ptres/`
-   - `dotacao/`, `notacredito/`, `fornecedor/`, `notaempenho/`, `liquidacao/`, `ordembancaria/`
-   - `consulta/`, `usuario/`, `token/`, `auditoria/`
-   - `comum/excecao/`, `comum/paginacao/`, `comum/seguranca/`, `comum/sequencia/`
-7. Criar as classes base em `comum/`:
+   - `auth/` (com subpacote `dto/`)
+   - `managingunit/` (com `dto/`)
+   - `classification/budgetaction/`, `classification/internalplan/`, `classification/expensenature/`, `classification/fundingsource/`, `classification/ptres/`
+   - `allotment/`, `creditnote/`, `vendor/`, `commitment/`, `settlement/`, `paymentorder/`
+   - `report/`, `user/`, `token/`, `audit/`
+   - `common/exception/`, `common/pagination/`, `common/security/`, `common/sequence/`
+7. Criar as classes base em `common/`:
    - `ProblemDetail.java` — DTO de erro RFC 7807 com campos: `tipo`, `titulo`, `status`, `detalhe`, `instancia`
-   - `TratadorGlobalExcecoes.java` — `@ControllerAdvice` com estrutura RFC 7807 (handlers serão adicionados por fase)
-   - `PaginacaoUtils.java` — método `construirPageable(Integer pagina, Integer tamanho, String ordenarPor, String direcao)` com validação de `tamanho` máximo 100
-   - `ConfiguracaoSeguranca.java` — `@Configuration @EnableWebSecurity` com `permitAll()` em todos os endpoints (stub provisório; substituído na FASE-001)
+   - `GlobalExceptionHandler.java` — `@ControllerAdvice` com estrutura RFC 7807 (handlers serão adicionados por fase)
+   - `PaginationUtils.java` — método `construirPageable(Integer pagina, Integer tamanho, String ordenarPor, String direcao)` com validação de `tamanho` máximo 100
+   - `SecurityConfig.java` — `@Configuration @EnableWebSecurity` com `permitAll()` em todos os endpoints (stub provisório; substituído na FASE-001)
 8. Criar `backend/src/main/resources/application.yml` com:
    - `spring.datasource.url/username/password` usando variáveis de ambiente (`${SPRING_DATASOURCE_URL}` etc.)
    - `spring.jpa.hibernate.ddl-auto: validate`
@@ -243,14 +243,14 @@ Nenhuma
     - `npm create vite@latest . -- --template react` dentro de `frontend/`
     - Instalar todos os pacotes listados na seção "Pacotes Frontend"
 13. Criar a estrutura de diretórios do frontend em `frontend/src/`:
-    - `componentes/comum/` — componentes reutilizáveis (`CabecalhoSistema`, `MenuLateral`, `BadgeStatus`, `ModalConfirmacao`, `TabelaDados`, `SeletorComLupa`)
-    - `paginas/` — subdiretório por módulo (a popular nas fases seguintes)
-    - `servicos/` — clientes HTTP via Axios (um arquivo por módulo)
-    - `contextos/` — React Context (autenticação)
+    - `components/common/` — componentes reutilizáveis (`SystemHeader`, `SideMenu`, `StatusBadge`, `ConfirmationModal`, `TabelaDados`, `SearchSelector`)
+    - `pages/` — subdiretório por módulo (a popular nas fases seguintes)
+    - `services/` — clientes HTTP via Axios (um arquivo por módulo)
+    - `contexts/` — React Context (autenticação)
     - `hooks/` — custom hooks reutilizáveis
     - `utils/` — helpers de formatação (moeda BRL, datas ISO → BR)
 14. Criar `frontend/src/main.jsx` com `RouterProvider` do React Router 6
-15. Criar `frontend/src/roteador.jsx` com rotas stub para todos os módulos (cada rota retorna `<div>Em construção</div>` até ser implementada)
+15. Criar `frontend/src/router.jsx` com rotas stub para todos os módulos (cada rota retorna `<div>Em construção</div>` até ser implementada)
 16. Criar `frontend/jest.config.js` com `testEnvironment: 'jsdom'` e `setupFilesAfterFramework` apontando para arquivo que importa `@testing-library/jest-dom`
 17. Criar `frontend/Dockerfile` e `frontend/nginx.conf` conforme `12-deployment.md`
 18. Criar `backend/Dockerfile` conforme `12-deployment.md`
@@ -316,64 +316,64 @@ FASE-000 Scaffolding e Infraestrutura
 
 #### Plano
 
-1. Criar migração `V1__criar_tabelas_seguranca.sql` em `backend/src/main/resources/db/migration/`:
+1. Criar migração `V1__create_security_tables.sql` em `backend/src/main/resources/db/migration/`:
    - Tabelas `usuarios`, `tokens_integracao`, `tokens_redefinicao_senha` conforme DDL em `04-database-design.md`
-2. Criar migração `V8__dados_iniciais.sql`:
-   - Inserir usuário `admin` com `login='admin'`, senha `Admin@123` hashada com BCrypt-12 e `status='ATIVO'`
+2. Criar migração `V8__initial_data.sql`:
+   - Inserir usuário `admin` com `login='admin'`, senha `Admin@123` hashada com BCrypt-12 e `status='ACTIVE'`
    - Inserir UG raiz de exemplo: `codigo_ug='MIN_ED'`, `nome='Ministério da Educação'`
-3. Criar a entidade JPA `Usuario` em `autenticacao/` com todos os campos da tabela `usuarios`; implementar `UserDetails` do Spring Security
-4. Criar `UsuarioRepository` (JpaRepository) com: `findByLogin(String login)`, `findByEmail(String email)`
-5. Implementar `JwtService` em `autenticacao/`:
-   - `gerarToken(Usuario usuario)` — JWT com claims: `sub=login`, `nome`, `tipo=SESSAO`, `exp` = agora + 8h; assinar com HMAC-SHA256 usando `JWT_SEGREDO`
+3. Criar a entidade JPA `User` em `auth/` com todos os campos da tabela `usuarios`; implementar `UserDetails` do Spring Security
+4. Criar `UserRepository` (JpaRepository) com: `findByLogin(String login)`, `findByEmail(String email)`
+5. Implementar `JwtService` em `auth/`:
+   - `gerarToken(User user)` — JWT com claims: `sub=login`, `nome`, `tipo=SESSAO`, `exp` = agora + 8h; assinar com HMAC-SHA256 usando `JWT_SECRET`
    - `extrairLogin(String token)` — extrai o subject
-   - `validarToken(String token)` — verifica assinatura e expiração; lança `TokenInvalidoException` ou `TokenExpiradoException`
-6. Implementar `JwtFiltro` (`OncePerRequestFilter`):
+   - `validarToken(String token)` — verifica assinatura e expiração; lança `InvalidTokenException` ou `ExpiredTokenException`
+6. Implementar `JwtFilter` (`OncePerRequestFilter`):
    - Extrai token do header `Authorization: Bearer <token>`
    - Autentica via `JwtService`; popula `SecurityContextHolder`
    - Ignora endpoints públicos
-7. Substituir `ConfiguracaoSeguranca` stub pela configuração real:
-   - Endpoints públicos: `POST /api/v1/auth/login`, `POST /api/v1/auth/recuperar-senha`, `GET /swagger-ui/**`, `GET /api-docs/**`, `GET /actuator/health`
+7. Substituir `SecurityConfig` stub pela configuração real:
+   - Endpoints públicos: `POST /api/v1/auth/login`, `POST /api/v1/auth/recover-password`, `GET /swagger-ui/**`, `GET /api-docs/**`, `GET /actuator/health`
    - Todos os demais `authenticated()`
-   - Adicionar `JwtFiltro` antes de `UsernamePasswordAuthenticationFilter`
-   - Configurar CORS com a origin `${CORS_ORIGENS_PERMITIDAS}`
+   - Adicionar `JwtFilter` antes de `UsernamePasswordAuthenticationFilter`
+   - Configurar CORS com a origin `${CORS_ALLOWED_ORIGINS}`
    - Desabilitar CSRF (SPA com JWT); session stateless
-8. Implementar `AutenticacaoService`:
+8. Implementar `AuthService`:
    - `login(RequisicaoLogin req)` — verifica senha BCrypt; se inválida: incrementa `tentativasLogin`; se >= 5: seta `bloqueadoAte = agora + 15min`; se válida: zera `tentativasLogin` e retorna JWT via `JwtService`
    - `logout(String token)` — invalida sessão atual (simplificação: stateless, basta o cliente descartar o token)
    - `recuperarSenha(String email)` — busca usuário por e-mail; gera UUID, persiste em `tokens_redefinicao_senha` com `expira_em = agora + 1h`; envia e-mail via `JavaMailSender`; sempre retorna 204 (não revela existência do e-mail)
    - `redefinirSenha(RequisicaoRedefinicaoSenha req)` — busca token em `tokens_redefinicao_senha`; valida `usado=false` e `expira_em > agora`; atualiza `senha_hash` com BCrypt-12; marca token como `usado=true`
    - `alterarSenha(RequisicaoAlterarSenha req)` — verifica `senhaAtual` com BCrypt; atualiza para `novaSenha`
-9. Implementar `AutenticacaoController` com os cinco endpoints de `06-api-design.md`: `POST /login`, `POST /logout`, `POST /recuperar-senha`, `PUT /redefinir-senha`, `PUT /alterar-senha`
-10. Criar `ContextoSeguranca` em `comum/seguranca/` com método estático `getUsuarioLogado()` que extrai o `Usuario` do `SecurityContextHolder`
-11. Criar exceções em `comum/excecao/` com handlers no `TratadorGlobalExcecoes`:
-    - `CredenciaisInvalidasException` → 401 RFC 7807
-    - `ContaBloqueadaException` → 423 RFC 7807 com detalhe do horário de desbloqueio
-    - `TokenInvalidoException` → 401 RFC 7807
-    - `TokenExpiradoException` → 401 RFC 7807
-    - `EntidadeNaoEncontradaException` → 404 RFC 7807
+9. Implementar `AuthController` com os cinco endpoints de `06-api-design.md`: `POST /login`, `POST /logout`, `POST /recover-password`, `PUT /reset-password`, `PUT /change-password`
+10. Criar `SecurityContext` em `common/security/` com método estático `getUsuarioLogado()` que extrai o `User` do `SecurityContextHolder`
+11. Criar exceções em `common/exception/` com handlers no `GlobalExceptionHandler`:
+    - `InvalidCredentialsException` → 401 RFC 7807
+    - `AccountLockedException` → 423 RFC 7807 com detalhe do horário de desbloqueio
+    - `InvalidTokenException` → 401 RFC 7807
+    - `ExpiredTokenException` → 401 RFC 7807
+    - `EntityNotFoundException` → 404 RFC 7807
     - Handler para `MethodArgumentNotValidException` (Bean Validation) → 400 RFC 7807 com lista de campos inválidos
-12. Escrever testes unitários em `AutenticacaoServiceTest` (pacote `autenticacao`):
+12. Escrever testes unitários em `AuthServiceTest` (pacote `auth`):
     ```
     // Constantes obrigatórias no topo da classe:
-    static final String LOGIN_VALIDO        = "joao.silva";
-    static final String SENHA_VALIDA        = "MinhaS3nha!";
-    static final String SENHA_INVALIDA      = "SenhaErrada";
-    static final String EMAIL_VALIDO        = "joao@orgao.gov.br";
-    static final String NOME_USUARIO        = "João da Silva";
-    static final int    MAX_TENTATIVAS      = 5;
-    static final int    MINUTOS_BLOQUEIO    = 15;
+    static final String VALID_LOGIN         = "joao.silva";
+    static final String VALID_PASSWORD      = "MinhaS3nha!";
+    static final String INVALID_PASSWORD    = "SenhaErrada";
+    static final String VALID_EMAIL         = "joao@orgao.gov.br";
+    static final String USER_NAME           = "João da Silva";
+    static final int    MAX_ATTEMPTS        = 5;
+    static final int    LOCKOUT_MINUTES     = 15;
     ```
-    - `deveRetornarTokenQuandoCredenciaisValidas()`
-    - `deveLancarExcecaoQuandoSenhaIncorreta()`
-    - `deveIncrementarTentativasLoginQuandoSenhaIncorreta()`
-    - `deveBloquerContaApos5TentativasInvalidas()`
-    - `deveLancarContaBloqueadaQuandoContaEstaBloqueada()`
-    - `deveGerarTokenRedefinicaoSenhaQuandoEmailValido()`
-    - `deveRedefinirSenhaQuandoTokenValido()`
-    - `deveLancarExcecaoQuandoTokenRedefinicaoExpirado()`
-    - `deveLancarExcecaoQuandoTokenRedefinicaoJaUsado()`
-13. Escrever testes de integração com Testcontainers em `AutenticacaoIntegracaoTest`:
-    - Constantes: `LOGIN_ADMIN`, `SENHA_ADMIN`, `SENHA_INCORRETA`, `MAX_TENTATIVAS`, `URL_LOGIN`
+    - `shouldReturnTokenWhenCredentialsValid()`
+    - `shouldThrowExceptionWhenPasswordIncorrect()`
+    - `shouldIncrementLoginAttemptsWhenPasswordIncorrect()`
+    - `shouldLockAccountAfter5InvalidAttempts()`
+    - `shouldThrowAccountLockedWhenAccountIsLocked()`
+    - `shouldGeneratePasswordResetTokenWhenEmailValid()`
+    - `shouldResetPasswordWhenTokenValid()`
+    - `shouldThrowExceptionWhenResetTokenExpired()`
+    - `shouldThrowExceptionWhenResetTokenAlreadyUsed()`
+13. Escrever testes de integração com Testcontainers em `AuthIntegrationTest`:
+    - Constantes: `ADMIN_LOGIN`, `ADMIN_PASSWORD`, `WRONG_PASSWORD`, `MAX_ATTEMPTS`, `LOGIN_URL`
     - Cobrir todos os casos do QA FASE 1 (F1-01 a F1-10 de `13-qa-process.md`)
     - Verificar que migration V8 cria o usuário admin
     - Verificar `POST /api/v1/auth/login` retorna 200 com token JWT para `admin/Admin@123`
@@ -381,42 +381,42 @@ FASE-000 Scaffolding e Infraestrutura
     - Verificar bloqueio após 5 tentativas retorna 423
     - Verificar requisição sem token a endpoint protegido retorna 401
     - Verificar Swagger UI acessível sem token (`GET /swagger-ui.html` → 200)
-14. Criar `frontend/src/servicos/autenticacaoServico.js`:
+14. Criar `frontend/src/services/authService.js`:
     - `login(credenciais)` — `POST /api/v1/auth/login`
     - `logout()` — `POST /api/v1/auth/logout`
-    - `recuperarSenha(email)` — `POST /api/v1/auth/recuperar-senha`
-    - `redefinirSenha(dados)` — `PUT /api/v1/auth/redefinir-senha`
-15. Criar `frontend/src/contextos/AutenticacaoContexto.jsx`:
+    - `recuperarSenha(email)` — `POST /api/v1/auth/recover-password`
+    - `redefinirSenha(dados)` — `PUT /api/v1/auth/reset-password`
+15. Criar `frontend/src/contexts/AuthContext.jsx`:
     - Estado: `usuario`, `token`, `autenticado`
     - Funções: `entrar(credenciais)`, `sair()`
     - Persistência do token em `localStorage`
     - Interceptor Axios global que adiciona `Authorization: Bearer <token>` a todas as requisições
     - Interceptor de resposta que chama `sair()` e redireciona para `/login` em 401
-16. Criar `frontend/src/paginas/Login/PaginaLogin.jsx`:
+16. Criar `frontend/src/pages/Login/LoginPage.jsx`:
     - Formulário com campos `login` e `senha` validados com React Hook Form + Zod
     - Exibe "Credenciais inválidas" em 401
     - Exibe "Conta bloqueada. Tente novamente em X minutos." em 423
     - Redireciona para `/` após login bem-sucedido
     - Botão desabilitado com indicador de loading durante a requisição
-17. Criar `frontend/src/componentes/RotaProtegida.jsx` — wrapper que redireciona para `/login` se `!autenticado`
-18. Atualizar `roteador.jsx` para envolver todas as rotas de módulos em `<RotaProtegida />`
-19. Escrever testes de componente em `PaginaLogin.test.jsx`:
+17. Criar `frontend/src/components/ProtectedRoute.jsx` — wrapper que redireciona para `/login` se `!autenticado`
+18. Atualizar `router.jsx` para envolver todas as rotas de módulos em `<ProtectedRoute />`
+19. Escrever testes de componente em `LoginPage.test.jsx`:
     ```js
     // Constantes obrigatórias no topo:
-    const LOGIN_VALIDO      = 'admin';
-    const SENHA_VALIDA      = 'Admin@123';
+    const VALID_LOGIN       = 'admin';
+    const VALID_PASSWORD    = 'Admin@123';
     const ERRO_CREDENCIAIS  = 'Credenciais inválidas';
     const ERRO_BLOQUEIO     = 'Conta bloqueada';
     ```
-    - `deveExibirErroQuandoCredenciaisInvalidas()`
-    - `deveRedirecionarParaHomeAposLoginBemSucedido()`
-    - `deveDesabilitarBotaoEnquantoRequisicaoEmAndamento()`
-    - `deveExibirErroDeBloqueioQuandoConta423()`
-20. Executar `mvn verify -f backend/pom.xml` — cobertura do pacote `autenticacao` ≥ 90%
+    - `shouldShowErrorWhenCredentialsInvalid()`
+    - `shouldRedirectToHomeAfterSuccessfulLogin()`
+    - `shouldDisableButtonWhileRequestInProgress()`
+    - `shouldShowLockErrorWhenAccount423()`
+20. Executar `mvn verify -f backend/pom.xml` — cobertura do pacote `auth` ≥ 90%
 
 #### Resultado Esperado
 
-- Migrations V1 e V8 aplicadas — tabelas de segurança e usuário admin criados
+- Migrations V1__create_security_tables e V8__initial_data aplicadas — tabelas de segurança e usuário admin criados
 - Login retorna JWT válido; logout é funcional
 - Recuperação de senha gera token (testado com mock SMTP); redefinição funciona
 - Bloqueio após 5 tentativas inválidas por 15 minutos
@@ -426,13 +426,13 @@ FASE-000 Scaffolding e Infraestrutura
 
 #### Verificação Automatizada (AI Gate)
 
-1. `mvn verify -f backend/pom.xml` — todos os testes passam; cobertura `autenticacao` ≥ 90%
+1. `mvn verify -f backend/pom.xml` — todos os testes passam; cobertura `auth` ≥ 90%
 2. `POST /api/v1/auth/login` com `{"login":"admin","senha":"Admin@123"}` → 200 com `token` JWT
 3. `POST /api/v1/auth/login` com senha incorreta → 401 RFC 7807
 4. Após 5 tentativas inválidas → 423 RFC 7807
-5. `GET /api/v1/unidades-gestoras` sem token → 401
+5. `GET /api/v1/managing-units` sem token → 401
 6. `GET /swagger-ui.html` sem token → 200
-7. `npm test --prefix frontend` — testes de `PaginaLogin` passam
+7. `npm test --prefix frontend` — testes de `LoginPage` passam
 
 **Esperado:**
 - Fluxo de autenticação completo funcionando; endpoints protegidos retornam 401 corretamente
@@ -446,8 +446,8 @@ FASE-000 Scaffolding e Infraestrutura
 
 #### Critérios de Sucesso
 
-✅ Migration V1 cria `usuarios`, `tokens_integracao`, `tokens_redefinicao_senha`
-✅ Migration V8 cria usuário admin com senha BCrypt-12
+✅ Migration V1__create_security_tables cria `usuarios`, `tokens_integracao`, `tokens_redefinicao_senha`
+✅ Migration V8__initial_data cria usuário admin com senha BCrypt-12
 ✅ `POST /api/v1/auth/login` retorna JWT em 200
 ✅ Senha errada → 401 RFC 7807
 ✅ Conta bloqueada após 5 tentativas → 423
@@ -456,7 +456,7 @@ FASE-000 Scaffolding e Infraestrutura
 ✅ Redefinição com token expirado → 401
 ✅ Swagger UI acessível sem autenticação
 ✅ Requisição sem token → 401
-✅ Cobertura `autenticacao` ≥ 90%
+✅ Cobertura `auth` ≥ 90%
 ✅ Testes de integração cobrem F1-01 a F1-10
 ✅ Página de Login do frontend funcional
 ✅ Rotas protegidas redirecionam para `/login`
@@ -482,64 +482,64 @@ FASE-001 Autenticação e Segurança
 
 #### Plano
 
-1. Criar migração `V2__criar_tabelas_estrutura.sql`:
+1. Criar migração `V2__create_structure_tables.sql`:
    - Tabela `unidades_gestoras` com auto-referência `orgao_superior_id` conforme DDL em `04-database-design.md`
-2. Criar migração `V3__criar_tabelas_classificacoes.sql`:
+2. Criar migração `V3__create_classification_tables.sql`:
    - Tabelas `acoes_orcamentarias`, `planos_internos`, `naturezas_despesa`, `fontes_recurso`, `ptres` conforme DDL
    - Índice `idx_ug_codigo`, `idx_ug_superior`
-3. Criar entidade JPA `UnidadeGestora` em `unidadegestora/` com `@ManyToOne @JoinColumn(name="orgao_superior_id") UnidadeGestora orgaoSuperior` (nullable)
-4. Criar `UnidadeGestoraRepository`:
+3. Criar entidade JPA `ManagingUnit` em `managingunit/` com `@ManyToOne @JoinColumn(name="orgao_superior_id") ManagingUnit orgaoSuperior` (nullable)
+4. Criar `ManagingUnitRepository`:
    - `findByCodigoUg(String codigo)`
    - `findByOrgaoSuperiorId(Long id)`
    - `findAllByStatus(String status, Pageable p)`
    - `existsByCodigoUg(String codigo)`
-5. Criar DTOs em `unidadegestora/dto/`: `RequisicaoCriarUG`, `RequisicaoAtualizarUG`, `RespostaUG` (inclui `orgaoSuperior` simplificado: apenas `id` e `nome`)
-6. Criar `UnidadeGestoraMapper` (MapStruct)
-7. Implementar `UnidadeGestoraService`:
-   - `criar(req)` — valida código único
-   - `buscarPorId(id)` — lança `EntidadeNaoEncontradaException` se não encontrada
-   - `listar(filtros, pageable)`
-   - `atualizar(id, req)` — não permite alteração de `codigoUg`
-   - `desativar(id)` — status → `INATIVO`
-   - `listarSubordinadas(id)` — busca recursiva de subordinadas
-8. Criar `UnidadeGestoraController` com endpoints: `GET /api/v1/unidades-gestoras`, `POST`, `GET /{id}`, `PUT /{id}`, `PATCH /{id}/desativar`, `GET /{id}/subordinadas`
-9. Para cada classificação (`AcaoOrcamentaria`, `PlanoInterno`, `NaturezaDespesa`, `FonteRecurso`, `Ptres`), criar entidade JPA, Repository, DTOs, Mapper e Service com operações: `criar`, `buscarPorId`, `listar`, `atualizar`, `desativar`, `excluir`
-10. A operação `excluir` em classificações deve verificar se há dotações referenciando a classificação; se sim → lançar nova exceção `EntidadeReferenciadaException` → 422 RFC 7807 com mensagem "Classificação referenciada; não pode ser excluída"
-11. Adicionar handler de `EntidadeReferenciadaException` ao `TratadorGlobalExcecoes`
-12. Criar Controllers para cada classificação com padrão CRUD + `PATCH /{id}/desativar` + `DELETE /{id}` conforme `06-api-design.md`
-13. Adicionar `@Auditavel` stub (anotação criada nesta fase) aos métodos de escrita dos Services — o interceptor AOP só é ativado na FASE-006; por ora a anotação existe mas não faz nada
-14. Escrever testes unitários `UnidadeGestoraServiceTest`:
+5. Criar DTOs em `managingunit/dto/`: `RequisicaoCriarUG`, `RequisicaoAtualizarUG`, `RespostaUG` (inclui `orgaoSuperior` simplificado: apenas `id` e `nome`)
+6. Criar `ManagingUnitMapper` (MapStruct)
+7. Implementar `ManagingUnitService`:
+   - `create(req)` — valida código único
+   - `findById(id)` — lança `EntityNotFoundException` se não encontrada
+   - `list(filtros, pageable)`
+   - `update(id, req)` — não permite alteração de `codigoUg`
+   - `deactivate(id)` — status → `INACTIVE`
+   - `findSubordinates(id)` — busca recursiva de subordinadas
+8. Criar `ManagingUnitController` com endpoints: `GET /api/v1/managing-units`, `POST`, `GET /{id}`, `PUT /{id}`, `PATCH /{id}/deactivate`, `GET /{id}/subordinates`
+9. Para cada classificação (`BudgetAction`, `InternalPlan`, `ExpenseNature`, `FundingSource`, `Ptres`), criar entidade JPA, Repository, DTOs, Mapper e Service com operações: `create`, `findById`, `list`, `update`, `deactivate`, `delete`
+10. A operação `excluir` em classificações deve verificar se há dotações referenciando a classificação; se sim → lançar nova exceção `ReferencedEntityException` → 422 RFC 7807 com mensagem "Classificação referenciada; não pode ser excluída"
+11. Adicionar handler de `ReferencedEntityException` ao `GlobalExceptionHandler`
+12. Criar Controllers para cada classificação com padrão CRUD + `PATCH /{id}/deactivate` + `DELETE /{id}` conforme `06-api-design.md`
+13. Adicionar `@Auditable` stub (anotação criada nesta fase) aos métodos de escrita dos Services — o interceptor AOP só é ativado na FASE-006; por ora a anotação existe mas não faz nada
+14. Escrever testes unitários `ManagingUnitServiceTest`:
     ```
-    static final String CODIGO_UG          = "MIN_ED";
-    static final String NOME_UG            = "Ministério da Educação";
-    static final String CODIGO_UG_DUP      = "MIN_ED"; // mesmo código para teste de duplicação
-    static final Long   ID_UG_SUPERIOR     = 1L;
+    static final String UNIT_CODE          = "MIN_ED";
+    static final String UNIT_NAME          = "Ministério da Educação";
+    static final String DUPLICATE_UNIT_CODE = "MIN_ED"; // mesmo código para teste de duplicação
+    static final Long   PARENT_UNIT_ID     = 1L;
     ```
-    - `deveCriarUGQuandoDadosValidos()`
-    - `deveLancarExcecaoQuandoCodigoUGDuplicado()`
-    - `deveDesativarUGExistente()`
-    - `deveLancarExcecaoQuandoUGNaoEncontrada()`
-    - `deveRetornarSubordinadasDaUG()`
-    - `deveNaoPermitirAlteracaoDeCodigoUG()`
-15. Escrever testes unitários análogos para pelo menos `AcaoOrcamentariaServiceTest` e `PlanoInternoServiceTest`; os demais seguem o mesmo padrão
+    - `shouldCreateManagingUnitWhenDataValid()`
+    - `shouldThrowExceptionWhenUnitCodeDuplicated()`
+    - `shouldDeactivateExistingManagingUnit()`
+    - `shouldThrowExceptionWhenManagingUnitNotFound()`
+    - `shouldReturnSubordinatesOfManagingUnit()`
+    - `shouldNotAllowUnitCodeChange()`
+15. Escrever testes unitários análogos para pelo menos `BudgetActionServiceTest` e `InternalPlanServiceTest`; os demais seguem o mesmo padrão
 16. Escrever testes de integração (Testcontainers) cobrindo F2-01 a F2-10 de `13-qa-process.md`
-17. Criar componente reutilizável `SeletorComLupa` em `frontend/src/componentes/comum/`:
+17. Criar componente reutilizável `SearchSelector` em `frontend/src/components/common/`:
     - Input de busca com ícone de lupa
     - Abre modal/dropdown com resultado paginado
     - Emite o item selecionado via `onChange`
     - Usado em formulários de dotação, NC, NE, etc.
-18. Criar `frontend/src/paginas/UnidadeGestora/` com `ListagemUG.jsx` e `FormularioUG.jsx`
-19. Criar `frontend/src/paginas/Classificacao/` com `ListagemClassificacao.jsx` e `FormularioClassificacao.jsx` (componentes genéricos parametrizados por tipo)
-20. Criar serviços HTTP: `unidadeGestoraServico.js`, `classificacaoServico.js`
+18. Criar `frontend/src/pages/ManagingUnit/` com `ManagingUnitList.jsx` e `ManagingUnitForm.jsx`
+19. Criar `frontend/src/pages/Classification/` com `ClassificationList.jsx` e `ClassificationForm.jsx` (componentes genéricos parametrizados por tipo)
+20. Criar serviços HTTP: `managingUnitService.js`, `classificationService.js`
 21. Escrever testes de componente:
     ```js
-    // ListagemUG.test.jsx
-    const UGS_MOCK = [{ id: 1, codigoUg: 'MIN_ED', nome: 'Ministério da Educação', status: 'ATIVO' }];
-    const MENSAGEM_LISTA_VAZIA = 'Nenhuma unidade gestora encontrada';
+    // ManagingUnitList.test.jsx
+    const MANAGING_UNITS_MOCK = [{ id: 1, codigoUg: 'MIN_ED', nome: 'Ministério da Educação', status: 'ACTIVE' }];
+    const EMPTY_LIST_MESSAGE = 'Nenhuma unidade gestora encontrada';
     ```
-    - `deveExibirListaDeUGsCarregadas()`
-    - `deveExibirMensagemSeListaVazia()`
-    - `deveExibirErroDeValidacaoQuandoCampoObrigatorioVazio()`
+    - `shouldShowLoadedManagingUnitList()`
+    - `shouldShowMessageWhenListIsEmpty()`
+    - `shouldShowValidationErrorWhenRequiredFieldEmpty()`
 22. Executar `mvn verify` — cobertura geral ≥ 80%
 
 #### Resultado Esperado
@@ -552,11 +552,11 @@ FASE-001 Autenticação e Segurança
 #### Verificação Automatizada (AI Gate)
 
 1. `mvn verify` — cobertura geral ≥ 80%
-2. `POST /api/v1/unidades-gestoras` → 201 com `id` gerado
-3. `POST /api/v1/unidades-gestoras` com `codigoUg` duplicado → 422 RFC 7807
-4. `GET /api/v1/unidades-gestoras/{id}/subordinadas` → lista de subordinadas
-5. `PATCH /api/v1/unidades-gestoras/{id}/desativar` → 204
-6. `DELETE /api/v1/acoes-orcamentarias/{id}` em uso → 422; sem uso → 204
+2. `POST /api/v1/managing-units` → 201 com `id` gerado
+3. `POST /api/v1/managing-units` com `codigoUg` duplicado → 422 RFC 7807
+4. `GET /api/v1/managing-units/{id}/subordinates` → lista de subordinadas
+5. `PATCH /api/v1/managing-units/{id}/deactivate` → 204
+6. `DELETE /api/v1/budget-actions/{id}` em uso → 422; sem uso → 204
 7. `npm test --prefix frontend` — testes de listagem e formulário passam
 
 #### Verificação Humana (Human Gate)
@@ -570,10 +570,10 @@ FASE-001 Autenticação e Segurança
 ✅ Migrations V2 e V3 aplicadas
 ✅ CRUD de UG com hierarquia (`orgaoSuperior`)
 ✅ UG desativada não aparece em novos cadastros
-✅ CRUD completo de Ação Orçamentária, Plano Interno, ND, FR, PTRES
+✅ CRUD completo de BudgetAction, InternalPlan, ExpenseNature, FundingSource, PTRES
 ✅ Exclusão de classificação referenciada → 422
 ✅ Testes unitários e de integração passam
-✅ `SeletorComLupa` implementado e testado
+✅ `SearchSelector` implementado e testado
 ✅ Frontend: listagem e formulário para UG e classificações
 ✅ **QA sign-off obtido (FASE 2)**
 
@@ -589,7 +589,7 @@ FASE-001 Autenticação e Segurança
 
 #### Objetivo
 
-É possível criar dotações orçamentárias, calcular saldos e transferir créditos entre UGs via Notas de Crédito. A máquina de estados PENDENTE → APROVADA → ESTORNADA (e o caminho CANCELADA) está completamente funcional com validações de saldo. A numeração automática de documentos funciona atomicamente.
+É possível criar dotações orçamentárias, calcular saldos e transferir créditos entre UGs via Notas de Crédito. A máquina de estados PENDING → APPROVED → REVERSED (e o caminho CANCELLED) está completamente funcional com validações de saldo. A numeração automática de documentos funciona atomicamente.
 
 #### Dependências
 
@@ -597,7 +597,7 @@ FASE-002 UGs e Classificações Orçamentárias
 
 #### Plano
 
-1. Criar migração `V4__criar_tabelas_orcamento.sql`:
+1. Criar migração `V4__create_budget_tables.sql`:
    - Tabela `sequencias_documentos` (necessária desde esta fase para numeração de NCs)
    - Tabela `dotacoes_orcamentarias` com todos os FKs para classificações
    - Tabela `notas_credito`
@@ -605,81 +605,81 @@ FASE-002 UGs e Classificações Orçamentárias
 
    > **Nota de ajuste:** O design original (`04-database-design.md`) coloca `sequencias_documentos` em V5. Esta fase a move para V4 pois a numeração de NC já é necessária aqui. Os documentos de design não precisam ser atualizados — é uma decisão de implementação.
 
-2. Implementar `GeradorNumeracaoDocumento` em `comum/sequencia/`:
+2. Implementar `DocumentNumberGenerator` em `common/sequence/`:
    - `gerarNumero(String tipoDocumento, Long ugId, Integer exercicio)` — executa em `@Transactional(propagation=MANDATORY)` (deve rodar dentro de transação existente)
    - `SELECT ultimo_numero FROM sequencias_documentos WHERE tipo_documento=? AND ug_id=? AND exercicio=? FOR UPDATE`
    - Se não existe: INSERT com `ultimo_numero=1`; se existe: UPDATE `ultimo_numero = ultimo_numero + 1`
    - Retorna a string formatada: `[exercício 4d][codigoUg sem traços][sequencial com LPAD 6 zeros]`
    - Tipos: `NC`, `NE`, `NL`, `OB`
-3. Criar entidade JPA `DotacaoOrcamentaria` em `dotacao/` com ManyToOne para `UnidadeGestora`, `AcaoOrcamentaria`, `PlanoInterno` (nullable), `NaturezaDespesa`, `FonteRecurso`, `Ptres`
-4. Criar `DotacaoOrcamentariaRepository`:
+3. Criar entidade JPA `BudgetAllotment` em `allotment/` com ManyToOne para `ManagingUnit`, `BudgetAction`, `InternalPlan` (nullable), `ExpenseNature`, `FundingSource`, `Ptres`
+4. Criar `BudgetAllotmentRepository`:
    - `findByUgIdAndExercicio(Long ugId, Integer exercicio, Pageable p)`
-   - Query nativa/JPQL `calcularTotalEmpenhado(Long dotacaoId)` — soma `valor` de NEs com status `A_LIQUIDAR`, `PARCIALMENTE_LIQUIDADA`, `LIQUIDADA`, `PAGA`
-   - `calcularNcRecebidas(Long dotacaoId)` — soma `valor` de NCs APROVADAS onde `dotacao_destino_id = dotacaoId`
-   - `calcularNcCedidas(Long dotacaoId)` — soma `valor` de NCs APROVADAS onde `dotacao_origem_id = dotacaoId`
-5. Implementar `DotacaoOrcamentariaService`:
-   - `criar(req)`, `buscarPorId(id)`, `listar(filtros, pageable)`, `atualizar(id, req)` (somente campos não-financeiros, como observações)
-   - `suplementar(id, valor)` — adiciona ao `valor_atualizado`; `@Transactional`
-   - `consultarSaldo(id)` — retorna DTO com: `dotacaoInicial`, `dotacaoAtualizada`, `creditosRecebidos`, `creditosCedidos`, `empenhado`, `saldoDisponivel`
-6. Criar `DotacaoOrcamentariaController` com endpoints: `GET /api/v1/dotacoes`, `POST`, `GET /{id}`, `PUT /{id}`, `GET /{id}/saldo`, `POST /{id}/suplementar`
-7. Criar entidade JPA `NotaCredito` em `notacredito/` com campos conforme `04-database-design.md` e ManyToOne para as duas UGs e duas dotações
-8. Implementar `NotaCreditoService`:
-   - `emitir(req)` — valida `ugOrigem ≠ ugDestino`; gera `numeroNc` via `GeradorNumeracaoDocumento`; status inicial `PENDENTE`; `@Transactional`
-   - `buscarPorId(id)`, `listar(filtros, pageable)`
-   - `aprovar(id)` — verifica `status=PENDENTE`; calcula `saldoDisponivel` da `dotacaoOrigem`; se `valor > saldo` → lança `SaldoInsuficienteException`; status → `APROVADA`; `@Transactional`
-   - `cancelar(id)` — apenas se `status=PENDENTE`; status → `CANCELADA`; se não `PENDENTE` → `TransicaoEstadoInvalidaException`
-   - `estornar(id)` — apenas se `status=APROVADA`; verifica se há NEs ativas usando créditos da `dotacaoDestino`; se sim → lança `TransicaoEstadoInvalidaException` com detalhe; status → `ESTORNADA`
-9. Criar exceções e adicionar handlers ao `TratadorGlobalExcecoes`:
-   - `SaldoInsuficienteException` → 422 RFC 7807
-   - `TransicaoEstadoInvalidaException` → 422 RFC 7807
-10. Criar `NotaCreditoController` com endpoints: `GET /api/v1/notas-credito`, `POST`, `GET /{id}`, `PATCH /{id}/aprovar`, `PATCH /{id}/cancelar`, `PATCH /{id}/estornar`
-11. Escrever testes unitários `DotacaoOrcamentariaServiceTest`:
+   - Query nativa/JPQL `calcularTotalEmpenhado(Long dotacaoId)` — soma `valor` de NEs com status `PENDING_SETTLEMENT`, `PARTIALLY_SETTLED`, `SETTLED`, `PAID`
+   - `calcularNcRecebidas(Long dotacaoId)` — soma `valor` de NCs APPROVED onde `dotacao_destino_id = dotacaoId`
+   - `calcularNcCedidas(Long dotacaoId)` — soma `valor` de NCs APPROVED onde `dotacao_origem_id = dotacaoId`
+5. Implementar `BudgetAllotmentService`:
+   - `create(req)`, `findById(id)`, `list(filtros, pageable)`, `update(id, req)` (somente campos não-financeiros, como observações)
+   - `supplement(id, valor)` — adiciona ao `valor_atualizado`; `@Transactional`
+   - `getBalance(id)` — retorna DTO com: `dotacaoInicial`, `dotacaoAtualizada`, `creditosRecebidos`, `creditosCedidos`, `empenhado`, `saldoDisponivel`
+6. Criar `BudgetAllotmentController` com endpoints: `GET /api/v1/allotments`, `POST`, `GET /{id}`, `PUT /{id}`, `GET /{id}/saldo`, `POST /{id}/supplement`
+7. Criar entidade JPA `CreditNote` em `creditnote/` com campos conforme `04-database-design.md` e ManyToOne para as duas UGs e duas dotações
+8. Implementar `CreditNoteService`:
+   - `issue(req)` — valida `ugOrigem ≠ ugDestino`; gera `numeroNc` via `DocumentNumberGenerator`; status inicial `PENDING`; `@Transactional`
+   - `findById(id)`, `list(filtros, pageable)`
+   - `approve(id)` — verifica `status=PENDING`; calcula `saldoDisponivel` da `dotacaoOrigem`; se `valor > saldo` → lança `InsufficientBalanceException`; status → `APPROVED`; `@Transactional`
+   - `cancel(id)` — apenas se `status=PENDING`; status → `CANCELLED`; se não `PENDING` → `InvalidStateTransitionException`
+   - `reverse(id)` — apenas se `status=APPROVED`; verifica se há NEs ativas usando créditos da `dotacaoDestino`; se sim → lança `InvalidStateTransitionException` com detalhe; status → `REVERSED`
+9. Criar exceções e adicionar handlers ao `GlobalExceptionHandler`:
+   - `InsufficientBalanceException` → 422 RFC 7807
+   - `InvalidStateTransitionException` → 422 RFC 7807
+10. Criar `CreditNoteController` com endpoints: `GET /api/v1/credit-notes`, `POST`, `GET /{id}`, `PATCH /{id}/approve`, `PATCH /{id}/cancel`, `PATCH /{id}/reverse`
+11. Escrever testes unitários `BudgetAllotmentServiceTest`:
     ```
-    static final BigDecimal VALOR_INICIAL      = BigDecimal.valueOf(500_000);
-    static final BigDecimal VALOR_SUPLEMENTAR  = BigDecimal.valueOf(100_000);
-    static final BigDecimal TOTAL_EMPENHADO    = BigDecimal.valueOf(120_000);
-    static final BigDecimal NC_RECEBIDA        = BigDecimal.valueOf(50_000);
-    static final Integer    EXERCICIO_CORRENTE = 2025;
+    static final BigDecimal INITIAL_VALUE       = BigDecimal.valueOf(500_000);
+    static final BigDecimal SUPPLEMENT_VALUE    = BigDecimal.valueOf(100_000);
+    static final BigDecimal TOTAL_COMMITTED     = BigDecimal.valueOf(120_000);
+    static final BigDecimal RECEIVED_CREDIT_NOTE = BigDecimal.valueOf(50_000);
+    static final Integer    CURRENT_FISCAL_YEAR = 2025;
     ```
-    - `deveCriarDotacaoComValorInicial()`
-    - `deveSuplementarAdicionandoValor()`
-    - `deveCalcularSaldoCorretamente()`
-12. Escrever testes unitários `NotaCreditoServiceTest`:
+    - `shouldCreateAllotmentWithInitialValue()`
+    - `shouldSupplementAddingValue()`
+    - `shouldCalculateBalanceCorrectly()`
+12. Escrever testes unitários `CreditNoteServiceTest`:
     ```
-    static final BigDecimal VALOR_NC           = BigDecimal.valueOf(50_000);
-    static final BigDecimal SALDO_SUFICIENTE   = BigDecimal.valueOf(200_000);
-    static final BigDecimal SALDO_INSUFICIENTE = BigDecimal.valueOf(30_000);
-    static final Long       UG_ORIGEM_ID       = 1L;
-    static final Long       UG_DESTINO_ID      = 2L;
+    static final BigDecimal CREDIT_NOTE_VALUE   = BigDecimal.valueOf(50_000);
+    static final BigDecimal SUFFICIENT_BALANCE  = BigDecimal.valueOf(200_000);
+    static final BigDecimal INSUFFICIENT_BALANCE = BigDecimal.valueOf(30_000);
+    static final Long       SOURCE_UNIT_ID      = 1L;
+    static final Long       TARGET_UNIT_ID      = 2L;
     ```
-    - `deveEmitirNCComStatusPendente()`
-    - `deveAprovarNCQuandoSaldoSuficiente()`
-    - `deveLancarExcecaoQuandoSaldoInsuficienteParaNC()`
-    - `deveCancelarNCPendente()`
-    - `deveLancarExcecaoAoCancelarNCJaAprovada()`
-    - `deveEstornarNCAprovadaSemEmpenhos()`
-    - `deveLancarExcecaoAoEstornarNCComCreditosEmpenhados()`
-    - `deveLancarExcecaoSeUGOrigemIgualUGDestino()`
+    - `shouldIssueCreditNoteWithPendingStatus()`
+    - `shouldApproveCreditNoteWhenBalanceSufficient()`
+    - `shouldThrowExceptionWhenBalanceInsufficientForCreditNote()`
+    - `shouldCancelPendingCreditNote()`
+    - `shouldThrowExceptionWhenCancellingApprovedCreditNote()`
+    - `shouldReverseApprovedCreditNoteWithoutCommitments()`
+    - `shouldThrowExceptionWhenReversingCreditNoteWithCommittedCredits()`
+    - `shouldThrowExceptionWhenSourceUnitEqualsTargetUnit()`
 13. Escrever testes de integração (Testcontainers) cobrindo F3-01 a F3-10 de `13-qa-process.md`
 14. Criar frontend:
-    - `paginas/Dotacao/ListagemDotacao.jsx`, `FormularioDotacao.jsx` (com `SeletorComLupa` para classificações), `SaldoDotacao.jsx` (painel com os 6 campos do saldo)
-    - `paginas/NotaCredito/ListagemNC.jsx`, `FormularioNC.jsx` (com `SeletorComLupa` para UGs e dotações)
-    - Botões de ação contextuais no detalhe da NC: "Aprovar" visível apenas em PENDENTE, "Cancelar" em PENDENTE, "Estornar" em APROVADA
-    - `BadgeStatus` com cores: PENDENTE=cinza, APROVADA=verde, CANCELADA=vermelho, ESTORNADA=laranja
+    - `pages/Allotment/AllotmentList.jsx`, `AllotmentForm.jsx` (com `SearchSelector` para classificações), `AllotmentBalance.jsx` (painel com os 6 campos do saldo)
+    - `pages/CreditNote/CreditNoteList.jsx`, `CreditNoteForm.jsx` (com `SearchSelector` para UGs e dotações)
+    - Botões de ação contextuais no detalhe da NC: "Aprovar" visível apenas em PENDING, "Cancelar" em PENDING, "Estornar" em APPROVED
+    - `StatusBadge` com cores: PENDING=cinza, APPROVED=verde, CANCELLED=vermelho, REVERSED=laranja
 15. Escrever testes de componente:
     ```js
-    const SALDO_DISPONIVEL = 430_000;
-    const VALOR_NC         = 50_000;
-    const ERRO_SALDO       = 'Saldo insuficiente';
+    const AVAILABLE_BALANCE = 430_000;
+    const CREDIT_NOTE_VALUE = 50_000;
+    const ERRO_SALDO        = 'Saldo insuficiente';
     ```
-    - `deveExibirSaldoAoSelecionarDotacao()`
-    - `deveExibirBotaoAprovarApenasSePendente()`
-    - `deveExibirConfirmacaoAntesDeAprovar()`
-16. Executar `mvn verify` — cobertura `dotacao` e `notacredito` ≥ 90%
+    - `shouldShowBalanceWhenAllotmentSelected()`
+    - `shouldShowApproveButtonOnlyWhenPending()`
+    - `shouldShowConfirmationBeforeApproving()`
+16. Executar `mvn verify` — cobertura `allotment` e `creditnote` ≥ 90%
 
 #### Resultado Esperado
 
-- Migration V4 aplicada (sequências, dotações, NCs)
+- Migration V4__create_budget_tables aplicada (sequências, dotações, NCs)
 - Consulta de saldo retorna valores corretos
 - Ciclo completo NC funcionando com validações
 - Numeração automática de NC atômica (SELECT FOR UPDATE)
@@ -687,13 +687,13 @@ FASE-002 UGs e Classificações Orçamentárias
 
 #### Verificação Automatizada (AI Gate)
 
-1. `mvn verify` — cobertura `dotacao` e `notacredito` ≥ 90%
-2. `POST /api/v1/dotacoes` → 201
-3. `GET /api/v1/dotacoes/{id}/saldo` → todos os 6 campos corretos
-4. `POST /api/v1/notas-credito` → 201 com `numeroNc` no formato correto
-5. `PATCH /api/v1/notas-credito/{id}/aprovar` com saldo suficiente → 200 `status=APROVADA`
-6. `PATCH /api/v1/notas-credito/{id}/aprovar` com saldo insuficiente → 422 RFC 7807
-7. `PATCH /api/v1/notas-credito/{id}/cancelar` em NC APROVADA → 422
+1. `mvn verify` — cobertura `allotment` e `creditnote` ≥ 90%
+2. `POST /api/v1/allotments` → 201
+3. `GET /api/v1/allotments/{id}/saldo` → todos os 6 campos corretos
+4. `POST /api/v1/credit-notes` → 201 com `numeroNc` no formato correto
+5. `PATCH /api/v1/credit-notes/{id}/approve` com saldo suficiente → 200 `status=APPROVED`
+6. `PATCH /api/v1/credit-notes/{id}/approve` com saldo insuficiente → 422 RFC 7807
+7. `PATCH /api/v1/credit-notes/{id}/cancel` em NC APPROVED → 422
 8. `npm test --prefix frontend` — testes de dotação e NC passam
 
 #### Verificação Humana (Human Gate)
@@ -705,16 +705,16 @@ FASE-002 UGs e Classificações Orçamentárias
 
 #### Critérios de Sucesso
 
-✅ Migration V4 aplicada (`sequencias_documentos`, `dotacoes_orcamentarias`, `notas_credito`)
-✅ `GeradorNumeracaoDocumento` gera números únicos atomicamente
+✅ Migration V4__create_budget_tables aplicada (`sequencias_documentos`, `dotacoes_orcamentarias`, `notas_credito`)
+✅ `DocumentNumberGenerator` gera números únicos atomicamente
 ✅ CRUD de dotações com suplementação
 ✅ `GET /{id}/saldo` retorna 6 campos corretos
-✅ NC emitida com status PENDENTE e numeração automática
+✅ NC emitida com status PENDING e numeração automática
 ✅ Aprovação valida saldo
-✅ Cancelamento apenas em PENDENTE
-✅ Estorno apenas em APROVADA sem empenhos
+✅ Cancelamento apenas em PENDING
+✅ Estorno apenas em APPROVED sem empenhos
 ✅ Saldo insuficiente → 422 RFC 7807
-✅ Cobertura `dotacao` e `notacredito` ≥ 90%
+✅ Cobertura `allotment` e `creditnote` ≥ 90%
 ✅ Frontend funcional para dotações e NCs
 ✅ **QA sign-off obtido (FASE 3)**
 
@@ -730,7 +730,7 @@ FASE-002 UGs e Classificações Orçamentárias
 
 #### Objetivo
 
-É possível cadastrar fornecedores e emitir, reforçar e anular Notas de Empenho com as regras de tipo aplicadas corretamente. ORDINARIO aceita apenas anulação total. ESTIMATIVO e GLOBAL aceitam anulação parcial. Nenhuma NE pode ser anulada se tem liquidações vigentes.
+É possível cadastrar fornecedores e emitir, reforçar e anular Notas de Empenho com as regras de tipo aplicadas corretamente. ORDINARY aceita apenas anulação total. ESTIMATED e GLOBAL aceitam anulação parcial. Nenhuma NE pode ser anulada se tem liquidações vigentes.
 
 #### Dependências
 
@@ -738,119 +738,119 @@ FASE-003 Dotações e Notas de Crédito
 
 #### Plano
 
-1. Criar migração `V5__criar_tabelas_execucao.sql` com **todas** as tabelas de execução (incluindo as que serão usadas na FASE-005):
+1. Criar migração `V5__create_execution_tables.sql` com **todas** as tabelas de execução (incluindo as que serão usadas na FASE-005):
    - `fornecedores`, `notas_empenho`, `liquidacoes_empenho`, `ordens_bancarias`
    - Índices: `idx_ne_numero`, `idx_ne_dotacao`, `idx_ne_status`, `idx_ne_ug_exercicio`, `idx_fornecedor_cnpj`, `idx_nl_ne`, `idx_ob_liquidacao`
 
    > **Nota:** Aplicar V5 completo nesta fase — as tabelas `liquidacoes_empenho` e `ordens_bancarias` existirão no banco mas o código de serviço só será implementado na FASE-005.
 
-2. Criar entidade JPA `Fornecedor` em `fornecedor/` com campos conforme `04-database-design.md`
-3. Criar `FornecedorRepository`: `findByCnpj(String cnpj)`, `existsByCnpj(String cnpj)`, `findAllByStatus(String status, Pageable p)`
-4. Implementar `FornecedorService`: `criar(req)`, `buscarPorId(id)`, `listar(filtros, pageable)`, `atualizar(id, req)`, `desativar(id)`
-5. Criar `FornecedorController` com: `GET /api/v1/fornecedores`, `POST`, `GET /{id}`, `PUT /{id}`, `PATCH /{id}/desativar`
-6. Criar enum `TipoEmpenho` com valores `ORDINARIO`, `ESTIMATIVO`, `GLOBAL`
-7. Criar enum `StatusNE` com valores `A_LIQUIDAR`, `PARCIALMENTE_LIQUIDADA`, `LIQUIDADA`, `PAGA`, `ANULADA`
-8. Criar entidade JPA `NotaEmpenho` em `notaempenho/` com os dois enums mapeados como `@Enumerated(EnumType.STRING)`
-9. Criar `NotaEmpenhoRepository`:
-   - `sumValorAtivoByDotacaoId(Long dotacaoId)` — soma valor de NEs com status ≠ `ANULADA`
-   - `existsByDotacaoIdAndStatusIn(Long dotacaoId, List<StatusNE> statusList)` — verifica NEs ativas
-   - `existsByIdAndLiquidacoesStatus(Long neId, String statusNl)` — verifica se há NLs com status `REGISTRADA`
-10. Implementar `NotaEmpenhoService`:
-    - `emitir(req)`:
-      1. Verifica `fornecedor.status = ATIVO`; se não → lança `FornecedorInativoException` → 422
-      2. Calcula saldo disponível da dotação via `DotacaoOrcamentariaService.consultarSaldo()`
-      3. Se `valor > saldoDisponivel` → lança `SaldoInsuficienteException`
-      4. Gera `numeroEmpenho` via `GeradorNumeracaoDocumento`; status inicial `A_LIQUIDAR`
+2. Criar entidade JPA `Vendor` em `vendor/` com campos conforme `04-database-design.md`
+3. Criar `VendorRepository`: `findByCnpj(String cnpj)`, `existsByCnpj(String cnpj)`, `findAllByStatus(String status, Pageable p)`
+4. Implementar `VendorService`: `create(req)`, `findById(id)`, `list(filtros, pageable)`, `update(id, req)`, `deactivate(id)`
+5. Criar `VendorController` com: `GET /api/v1/vendors`, `POST`, `GET /{id}`, `PUT /{id}`, `PATCH /{id}/deactivate`
+6. Criar enum `CommitmentType` com valores `ORDINARY`, `ESTIMATED`, `GLOBAL`
+7. Criar enum `CommitmentStatus` com valores `PENDING_SETTLEMENT`, `PARTIALLY_SETTLED`, `SETTLED`, `PAID`, `VOIDED`
+8. Criar entidade JPA `Commitment` em `commitment/` com os dois enums mapeados como `@Enumerated(EnumType.STRING)`
+9. Criar `CommitmentRepository`:
+   - `sumValorAtivoByDotacaoId(Long dotacaoId)` — soma valor de NEs com status ≠ `VOIDED`
+   - `existsByDotacaoIdAndStatusIn(Long dotacaoId, List<CommitmentStatus> statusList)` — verifica NEs ativas
+   - `existsByIdAndLiquidacoesStatus(Long neId, String statusNl)` — verifica se há NLs com status `REGISTERED`
+10. Implementar `CommitmentService`:
+    - `issue(req)`:
+      1. Verifica `vendor.status = ACTIVE`; se não → lança `InactiveVendorException` → 422
+      2. Calcula saldo disponível da dotação via `BudgetAllotmentService.getBalance()`
+      3. Se `valor > saldoDisponivel` → lança `InsufficientBalanceException`
+      4. Gera `numeroEmpenho` via `DocumentNumberGenerator`; status inicial `PENDING_SETTLEMENT`
       5. `@Transactional`
-    - `buscarPorId(id)`, `listar(filtros, pageable)`, `listarLiquidacoes(id)` (retorna lista vazia nesta fase)
-    - `reforcar(id, req)`:
-      1. Verifica `status = A_LIQUIDAR` ou `PARCIALMENTE_LIQUIDADA`
+    - `findById(id)`, `list(filtros, pageable)`, `findByCommitment(id)` (retorna lista vazia nesta fase)
+    - `reinforce(id, req)`:
+      1. Verifica `status = PENDING_SETTLEMENT` ou `PARTIALLY_SETTLED`
       2. Verifica saldo disponível (novo valor total = valor atual + reforço)
       3. Atualiza `valor`; `@Transactional`
-    - `anular(id, req)`:
-      1. Verifica que não há NLs com `status = REGISTRADA`; se sim → `TransicaoEstadoInvalidaException`
-      2. Se `req.tipo = PARCIAL` e `tipoEmpenho = ORDINARIO` → lança `AnulacaoParcialNaoPermitidaException` → 422
-      3. Se `req.tipo = TOTAL`: status → `ANULADA`
-      4. Se `req.tipo = PARCIAL` (ESTIMATIVO ou GLOBAL): subtrai `req.valor` do `valor` da NE; se `valor` resultante = 0 → status `ANULADA`
+    - `voidCommitment(id, req)`:
+      1. Verifica que não há NLs com `status = REGISTERED`; se sim → `InvalidStateTransitionException`
+      2. Se `req.tipo = PARCIAL` e `commitmentType = ORDINARY` → lança `PartialVoidingNotAllowedException` → 422
+      3. Se `req.tipo = TOTAL`: status → `VOIDED`
+      4. Se `req.tipo = PARCIAL` (ESTIMATED ou GLOBAL): subtrai `req.valor` do `valor` da NE; se `valor` resultante = 0 → status `VOIDED`
       5. `@Transactional`
-11. Criar `AnulacaoParcialNaoPermitidaException` → 422 e `FornecedorInativoException` → 422; adicionar handlers ao `TratadorGlobalExcecoes`
-12. Criar `NotaEmpenhoController`: `GET`, `POST`, `GET /{id}`, `POST /{id}/reforco`, `PATCH /{id}/anular`, `GET /{id}/liquidacoes`
-13. Atualizar `DotacaoOrcamentariaRepository` para incluir as NEs no cálculo de saldo (consulta já preparada em FASE-003 mas NEs só existem agora)
-14. Escrever testes unitários `FornecedorServiceTest`:
+11. Criar `PartialVoidingNotAllowedException` → 422 e `InactiveVendorException` → 422; adicionar handlers ao `GlobalExceptionHandler`
+12. Criar `CommitmentController`: `GET`, `POST`, `GET /{id}`, `POST /{id}/reinforce`, `PATCH /{id}/void`, `GET /{id}/settlements`
+13. Atualizar `BudgetAllotmentRepository` para incluir as NEs no cálculo de saldo (consulta já preparada em FASE-003 mas NEs só existem agora)
+14. Escrever testes unitários `VendorServiceTest`:
     ```
-    static final String CNPJ_VALIDO     = "12345678000190";
-    static final String CNPJ_INVALIDO   = "00000000000000";
-    static final String NOME_FORNECEDOR = "Empresa ABC Ltda";
+    static final String VALID_CNPJ      = "12345678000190";
+    static final String INVALID_CNPJ    = "00000000000000";
+    static final String VENDOR_NAME     = "Empresa ABC Ltda";
     ```
-    - `deveCriarFornecedorComCNPJValido()`
-    - `deveLancarExcecaoQuandoCNPJDuplicado()`
-    - `deveDesativarFornecedor()`
-    - `deveLancarExcecaoQuandoFornecedorNaoEncontrado()`
-15. Escrever testes unitários `NotaEmpenhoServiceTest`:
+    - `shouldCreateVendorWithValidCNPJ()`
+    - `shouldThrowExceptionWhenCNPJDuplicated()`
+    - `shouldDeactivateVendor()`
+    - `shouldThrowExceptionWhenVendorNotFound()`
+15. Escrever testes unitários `CommitmentServiceTest`:
     ```
-    static final BigDecimal VALOR_EMPENHO          = BigDecimal.valueOf(80_000);
-    static final BigDecimal SALDO_SUFICIENTE        = BigDecimal.valueOf(500_000);
-    static final BigDecimal SALDO_INSUFICIENTE      = BigDecimal.valueOf(50_000);
-    static final BigDecimal VALOR_REFORCO           = BigDecimal.valueOf(20_000);
-    static final BigDecimal VALOR_ANULACAO_PARCIAL  = BigDecimal.valueOf(10_000);
-    static final String     NUMERO_PROCESSO         = "23000.001234/2025-01";
-    static final String     DESCRICAO_OBJETO        = "Aquisição de equipamentos de TI";
-    static final Integer    EXERCICIO_CORRENTE      = 2025;
+    static final BigDecimal COMMITMENT_VALUE        = BigDecimal.valueOf(80_000);
+    static final BigDecimal SUFFICIENT_BALANCE      = BigDecimal.valueOf(500_000);
+    static final BigDecimal INSUFFICIENT_BALANCE    = BigDecimal.valueOf(50_000);
+    static final BigDecimal REINFORCE_VALUE         = BigDecimal.valueOf(20_000);
+    static final BigDecimal PARTIAL_VOID_VALUE      = BigDecimal.valueOf(10_000);
+    static final String     PROCESS_NUMBER          = "23000.001234/2025-01";
+    static final String     OBJECT_DESCRIPTION      = "Aquisição de equipamentos de TI";
+    static final Integer    CURRENT_FISCAL_YEAR     = 2025;
     ```
-    - `deveEmitirNEQuandoSaldoSuficiente()`
-    - `deveLancarExcecaoQuandoSaldoInsuficiente()`
-    - `deveLancarExcecaoQuandoFornecedorInativo()`
-    - `deveReforcarNEAdicionandoValor()`
-    - `deveAnularNEOrdinariaTotal()`
-    - `deveLancarExcecaoAnulacaoParcialNEOrdinaria()`
-    - `deveAnularNEEstimativaParcialmente()`
-    - `deveLancarExcecaoAnularNEComLiquidacaoVigente()`
+    - `shouldIssueCommitmentWhenBalanceSufficient()`
+    - `shouldThrowExceptionWhenBalanceInsufficient()`
+    - `shouldThrowExceptionWhenVendorInactive()`
+    - `shouldSupplementCommitmentAddingValue()`
+    - `shouldVoidOrdinaryCommitmentCompletely()`
+    - `shouldThrowExceptionWhenPartiallyVoidingOrdinaryCommitment()`
+    - `shouldPartiallyVoidEstimatedCommitment()`
+    - `shouldThrowExceptionWhenVoidingCommitmentWithActiveSettlement()`
 16. Escrever testes de integração (Testcontainers) cobrindo F4-01 a F4-13 de `13-qa-process.md`
 17. Criar frontend:
-    - `paginas/Fornecedor/ListagemFornecedor.jsx`, `FormularioFornecedor.jsx`
-    - `paginas/NotaEmpenho/ListagemNE.jsx`, `FormularioNE.jsx`
-    - Formulário de NE: ao selecionar a dotação via `SeletorComLupa`, busca e exibe saldo disponível em tempo real (`GET /api/v1/dotacoes/{id}/saldo`)
-    - Badges de tipo (ORDINARIO=azul escuro, ESTIMATIVO=azul, GLOBAL=roxo) e status da NE
+    - `pages/Vendor/VendorList.jsx`, `VendorForm.jsx`
+    - `pages/Commitment/CommitmentList.jsx`, `CommitmentForm.jsx`
+    - Formulário de NE: ao selecionar a dotação via `SearchSelector`, busca e exibe saldo disponível em tempo real (`GET /api/v1/allotments/{id}/saldo`)
+    - Badges de tipo (ORDINARY=azul escuro, ESTIMATED=azul, GLOBAL=roxo) e status da NE
     - Modal de confirmação para anulação com campo de valor quando tipo permite parcial
-18. Executar `mvn verify` — cobertura `notaempenho` ≥ 90%
+18. Executar `mvn verify` — cobertura `commitment` ≥ 90%
 
 #### Resultado Esperado
 
-- Migration V5 aplicada (tabelas de fornecedores, NEs, NLs e OBs)
-- CRUD de fornecedores com desativação
+- Migration V5__create_execution_tables aplicada (tabelas de fornecedores, NEs, NLs e OBs)
+- CRUD de vendors com desativação
 - NE emitida com numeração automática; reforço e anulação por tipo funcionando
-- Frontend com telas de fornecedor e NE
+- Frontend com telas de vendor e NE
 
 #### Verificação Automatizada (AI Gate)
 
-1. `mvn verify` — cobertura `notaempenho` ≥ 90%
-2. `POST /api/v1/fornecedores` com CNPJ duplicado → 422
-3. `POST /api/v1/notas-empenho` com saldo suficiente → 201 com `numeroEmpenho`
-4. `POST /api/v1/notas-empenho` com saldo insuficiente → 422
-5. `POST /api/v1/notas-empenho/{id}/reforco` → 200 com valor atualizado
-6. `PATCH /api/v1/notas-empenho/{id}/anular` `{"tipo":"PARCIAL"}` em ORDINARIO → 422
-7. `PATCH /api/v1/notas-empenho/{id}/anular` `{"tipo":"TOTAL"}` em ORDINARIO → 200 `status=ANULADA`
-8. `npm test --prefix frontend` — testes de fornecedor e NE passam
+1. `mvn verify` — cobertura `commitment` ≥ 90%
+2. `POST /api/v1/vendors` com CNPJ duplicado → 422
+3. `POST /api/v1/commitments` com saldo suficiente → 201 com `numeroEmpenho`
+4. `POST /api/v1/commitments` com saldo insuficiente → 422
+5. `POST /api/v1/commitments/{id}/reinforce` → 200 com valor atualizado
+6. `PATCH /api/v1/commitments/{id}/void` `{"tipo":"PARCIAL"}` em ORDINARY → 422
+7. `PATCH /api/v1/commitments/{id}/void` `{"tipo":"TOTAL"}` em ORDINARY → 200 `status=VOIDED`
+8. `npm test --prefix frontend` — testes de vendor e NE passam
 
 #### Verificação Humana (Human Gate)
 
-1. Cadastrar fornecedor; emitir NE ORDINARIO; anular total; verificar saldo restaurado
-2. Emitir NE ESTIMATIVO; anular parcialmente; verificar valor reduzido
+1. Cadastrar vendor; emitir NE ORDINARY; anular total; verificar saldo restaurado
+2. Emitir NE ESTIMATED; anular parcialmente; verificar valor reduzido
 3. Tentar emitir NE com saldo insuficiente — mensagem de erro clara
 4. **QA executa os casos F4-01 a F4-13 (`13-qa-process.md`) e assina o aceite da FASE 4**
 
 #### Critérios de Sucesso
 
-✅ Migration V5 aplicada (todas as tabelas de execução)
-✅ CRUD de fornecedor com desativação; CNPJ duplicado → 422
+✅ Migration V5__create_execution_tables aplicada (todas as tabelas de execução)
+✅ CRUD de vendor com desativação; CNPJ duplicado → 422
 ✅ NE emitida com numeração automática e saldo validado
 ✅ Reforço de NE funcional com validação de saldo
-✅ Anulação total de NE ORDINARIO
-✅ Anulação parcial de NE ESTIMATIVO/GLOBAL
-✅ Anulação parcial de NE ORDINARIO → 422
+✅ Anulação total de NE ORDINARY
+✅ Anulação parcial de NE ESTIMATED/GLOBAL
+✅ Anulação parcial de NE ORDINARY → 422
 ✅ NE com liquidação vigente não pode ser anulada → 422
-✅ Cobertura `notaempenho` ≥ 90%
-✅ Frontend funcional para fornecedores e NEs
+✅ Cobertura `commitment` ≥ 90%
+✅ Frontend funcional para vendors e NEs
 ✅ **QA sign-off obtido (FASE 4)**
 
 ---
@@ -865,7 +865,7 @@ FASE-003 Dotações e Notas de Crédito
 
 #### Objetivo
 
-O ciclo financeiro está completo. É possível liquidar empenhos e registrar pagamentos via OB. A propagação de status da NE (A_LIQUIDAR → PARCIALMENTE_LIQUIDADA → LIQUIDADA → PAGA) funciona corretamente. O fluxo ponta a ponta Dotação → NC → NE → NL → OB é operacional.
+O ciclo financeiro está completo. É possível liquidar empenhos e registrar pagamentos via OB. A propagação de status da NE (PENDING_SETTLEMENT → PARTIALLY_SETTLED → SETTLED → PAID) funciona corretamente. O fluxo ponta a ponta Dotação → NC → NE → NL → OB é operacional.
 
 #### Dependências
 
@@ -875,131 +875,131 @@ FASE-004 Fornecedores e Notas de Empenho
 
 > As tabelas `liquidacoes_empenho` e `ordens_bancarias` já existem no banco (criadas pela V5 na FASE-004). Esta fase apenas implementa o código de serviço.
 
-1. Criar entidade JPA `LiquidacaoEmpenho` em `liquidacao/` com `@ManyToOne NotaEmpenho notaEmpenho`
-2. Criar `LiquidacaoEmpenhoRepository`:
-   - `findByNotaEmpenhoId(Long neId, Pageable p)`
-   - `sumValorByNotaEmpenhoIdAndStatus(Long neId, String status)` — total liquidado com status `REGISTRADA`
-   - `existsByNotaEmpenhoIdAndStatus(Long neId, String status)` — verifica NL REGISTRADA (usada no bloqueio de anulação de NE)
-   - `existsByIdAndOrdemBancariaStatusNot(Long nlId, String statusOb)` — verifica OB vinculada não cancelada
-3. Implementar `LiquidacaoEmpenhoService`:
-   - `registrar(req)`:
-     1. Busca NE; verifica status ≠ `ANULADA` e ≠ `PAGA`
-     2. Calcula `saldoALiquidar = notaEmpenho.valor - totalJaLiquidado`
-     3. Se `req.valor > saldoALiquidar` → `SaldoInsuficienteException`
-     4. Se `notaEmpenho.tipoEmpenho = ORDINARIO` e `req.valor < notaEmpenho.valor - totalJaLiquidado` → `LiquidacaoParcialNaoPermitidaException` → 422
-     5. Gera `numeroLiquidacao` via `GeradorNumeracaoDocumento` (tipo `NL`)
+1. Criar entidade JPA `Settlement` em `settlement/` com `@ManyToOne Commitment commitment`
+2. Criar `SettlementRepository`:
+   - `findByCommitmentId(Long neId, Pageable p)`
+   - `sumValorByCommitmentIdAndStatus(Long neId, String status)` — total liquidado com status `REGISTERED`
+   - `existsByCommitmentIdAndStatus(Long neId, String status)` — verifica NL REGISTERED (usada no bloqueio de anulação de NE)
+   - `existsByIdAndPaymentOrderStatusNot(Long nlId, String statusOb)` — verifica OB vinculada não cancelada
+3. Implementar `SettlementService`:
+   - `register(req)`:
+     1. Busca NE; verifica status ≠ `VOIDED` e ≠ `PAID`
+     2. Calcula `saldoALiquidar = commitment.valor - totalJaLiquidado`
+     3. Se `req.valor > saldoALiquidar` → `InsufficientBalanceException`
+     4. Se `commitment.commitmentType = ORDINARY` e `req.valor < commitment.valor - totalJaLiquidado` → `PartialSettlementNotAllowedException` → 422
+     5. Gera `numeroLiquidacao` via `DocumentNumberGenerator` (tipo `NL`)
      6. Após salvar NL, atualiza status da NE:
-        - `totalLiquidado == notaEmpenho.valor` → `LIQUIDADA`
-        - `totalLiquidado < notaEmpenho.valor` → `PARCIALMENTE_LIQUIDADA`
+        - `totalLiquidado == commitment.valor` → `SETTLED`
+        - `totalLiquidado < commitment.valor` → `PARTIALLY_SETTLED`
      7. `@Transactional`
-   - `buscarPorId(id)`, `listar(filtros, pageable)`
-   - `estornar(id)`:
-     1. Verifica `status = REGISTRADA`; se não → `TransicaoEstadoInvalidaException`
-     2. Verifica que não há OB com status ≠ `CANCELADA` vinculada; se sim → `TransicaoEstadoInvalidaException` "NL possui Ordem Bancária não cancelada"
-     3. Status NL → `ESTORNADA`
+   - `findById(id)`, `list(filtros, pageable)`
+   - `reverse(id)`:
+     1. Verifica `status = REGISTERED`; se não → `InvalidStateTransitionException`
+     2. Verifica que não há OB com status ≠ `CANCELLED` vinculada; se sim → `InvalidStateTransitionException` "NL possui Ordem Bancária não cancelada"
+     3. Status NL → `REVERSED`
      4. Recalcula status da NE com base no totalLiquidado restante
      5. `@Transactional`
-4. Criar `LiquidacaoParcialNaoPermitidaException` → 422; adicionar handler ao `TratadorGlobalExcecoes`
-5. Criar `LiquidacaoEmpenhoController`: `GET /api/v1/liquidacoes`, `POST`, `GET /{id}`, `PATCH /{id}/estornar`
-6. Conectar `GET /api/v1/notas-empenho/{id}/liquidacoes` no `NotaEmpenhoController` ao `LiquidacaoEmpenhoService.listarPorNE(id)`
-7. Criar entidade JPA `OrdemBancaria` em `ordembancaria/` com `@ManyToOne LiquidacaoEmpenho liquidacao`
-8. Criar `OrdemBancariaRepository`:
-   - `existsByLiquidacaoIdAndStatusNot(Long nlId, String status)` — verifica OB não cancelada
-9. Implementar `OrdemBancariaService`:
-   - `emitir(req)`:
-     1. Busca NL; verifica `status = REGISTRADA`; se não → `TransicaoEstadoInvalidaException`
+4. Criar `PartialSettlementNotAllowedException` → 422; adicionar handler ao `GlobalExceptionHandler`
+5. Criar `SettlementController`: `GET /api/v1/settlements`, `POST`, `GET /{id}`, `PATCH /{id}/reverse`
+6. Conectar `GET /api/v1/commitments/{id}/settlements` no `CommitmentController` ao `SettlementService.findByCommitment(id)`
+7. Criar entidade JPA `PaymentOrder` em `paymentorder/` com `@ManyToOne Settlement settlement`
+8. Criar `PaymentOrderRepository`:
+   - `existsBySettlementIdAndStatusNot(Long nlId, String status)` — verifica OB não cancelada
+9. Implementar `PaymentOrderService`:
+   - `issue(req)`:
+     1. Busca NL; verifica `status = REGISTERED`; se não → `InvalidStateTransitionException`
      2. Verifica que não há OB não cancelada para esta NL
-     3. Gera `numeroOb` via `GeradorNumeracaoDocumento` (tipo `OB`)
-     4. Status inicial `EMITIDA`; `@Transactional`
-   - `buscarPorId(id)`, `listar(filtros, pageable)`
-   - `processar(id)`:
-     1. Verifica `status = EMITIDA`; status → `PROCESSADA`
-     2. Atualiza status da NE correspondente para `PAGA`
+     3. Gera `numeroOb` via `DocumentNumberGenerator` (tipo `OB`)
+     4. Status inicial `ISSUED`; `@Transactional`
+   - `findById(id)`, `list(filtros, pageable)`
+   - `process(id)`:
+     1. Verifica `status = ISSUED`; status → `PROCESSED`
+     2. Atualiza status da NE correspondente para `PAID`
      3. `@Transactional`
-   - `cancelar(id)`:
-     1. Verifica `status = EMITIDA`; status → `CANCELADA`
+   - `cancel(id)`:
+     1. Verifica `status = ISSUED`; status → `CANCELLED`
      2. Não altera status da NE
      3. `@Transactional`
-10. Criar `OrdemBancariaController`: `GET /api/v1/ordens-bancarias`, `POST`, `GET /{id}`, `PATCH /{id}/processar`, `PATCH /{id}/cancelar`
-11. Escrever testes unitários `LiquidacaoEmpenhoServiceTest`:
+10. Criar `PaymentOrderController`: `GET /api/v1/payment-orders`, `POST`, `GET /{id}`, `PATCH /{id}/process`, `PATCH /{id}/cancel`
+11. Escrever testes unitários `SettlementServiceTest`:
     ```
-    static final BigDecimal VALOR_NE                = BigDecimal.valueOf(80_000);
-    static final BigDecimal VALOR_LIQUIDACAO_TOTAL  = BigDecimal.valueOf(80_000);
-    static final BigDecimal VALOR_LIQUIDACAO_PARCIAL= BigDecimal.valueOf(40_000);
-    static final BigDecimal VALOR_ACIMA_LIMITE      = BigDecimal.valueOf(90_000);
-    static final String     DOCUMENTO_FISCAL        = "NF-123456";
+    static final BigDecimal COMMITMENT_VALUE         = BigDecimal.valueOf(80_000);
+    static final BigDecimal FULL_SETTLEMENT_VALUE    = BigDecimal.valueOf(80_000);
+    static final BigDecimal PARTIAL_SETTLEMENT_VALUE = BigDecimal.valueOf(40_000);
+    static final BigDecimal OVER_LIMIT_VALUE         = BigDecimal.valueOf(90_000);
+    static final String     FISCAL_DOCUMENT          = "NF-123456";
     ```
-    - `deveRegistrarLiquidacaoTotalDeNEOrdinaria()`
-    - `deveAtualizarStatusNEParaLiquidadaAposLiquidacaoTotal()`
-    - `deveRegistrarLiquidacaoParcialDeNEEstimativa()`
-    - `deveAtualizarStatusNEParaParcialmenteLiquidada()`
-    - `deveLancarExcecaoLiquidacaoParcialDeNEOrdinaria()`
-    - `deveLancarExcecaoValorAcimaDoSaldoALiquidar()`
-    - `deveEstornarNLSemOB()`
-    - `deveLancarExcecaoEstornarNLComOBNaoCancelada()`
-12. Escrever testes unitários `OrdemBancariaServiceTest`:
+    - `shouldRegisterFullSettlementForOrdinaryCommitment()`
+    - `shouldUpdateCommitmentStatusToSettledAfterFullSettlement()`
+    - `shouldRegisterPartialSettlementForEstimatedCommitment()`
+    - `shouldUpdateCommitmentStatusToPartiallySettled()`
+    - `shouldThrowExceptionWhenPartiallySettlingOrdinaryCommitment()`
+    - `shouldThrowExceptionWhenValueExceedsPendingSettlementBalance()`
+    - `shouldReverseSettlementWithoutPaymentOrder()`
+    - `shouldThrowExceptionWhenReversingSettlementWithNonCancelledPaymentOrder()`
+12. Escrever testes unitários `PaymentOrderServiceTest`:
     ```
-    static final String     BANCO          = "001";
-    static final String     AGENCIA        = "1234";
-    static final String     CONTA_DESTINO  = "56789-0";
-    static final BigDecimal VALOR_OB       = BigDecimal.valueOf(80_000);
+    static final String     BANK               = "001";
+    static final String     BRANCH             = "1234";
+    static final String     DESTINATION_ACCOUNT = "56789-0";
+    static final BigDecimal PAYMENT_ORDER_VALUE = BigDecimal.valueOf(80_000);
     ```
-    - `deveEmitirOBParaLiquidacaoRegistrada()`
-    - `deveLancarExcecaoOBParaLiquidacaoEstornada()`
-    - `deveProcessarOBAtualizandoStatusNEParaPaga()`
-    - `deveCancelarOBEmitida()`
-    - `deveLancarExcecaoProcessarOBJaCancelada()`
+    - `shouldIssuePaymentOrderForRegisteredSettlement()`
+    - `shouldThrowExceptionWhenIssuingPaymentOrderForReversedSettlement()`
+    - `shouldProcessPaymentOrderUpdatingCommitmentStatusToPaid()`
+    - `shouldCancelIssuedPaymentOrder()`
+    - `shouldThrowExceptionWhenProcessingCancelledPaymentOrder()`
 13. Escrever testes de integração (Testcontainers):
     - Cobrir F5-01 a F5-09 de `13-qa-process.md`
-    - Teste `F5-10` (fluxo completo): `@Test void deveExecutarFluxoCompletoDeDoatacaoAteOB()` — cria dotação, aprova NC, emite NE, registra NL, emite OB, processa OB, verifica NE com status `PAGA`
+    - Teste `F5-10` (fluxo completo): `@Test void shouldExecuteCompleteFlowFromAllotmentToPaymentOrder()` — cria dotação, aprova NC, emite NE, registra NL, emite OB, processa OB, verifica NE com status `PAID`
 14. Criar frontend:
-    - `paginas/Liquidacao/ListagemNL.jsx`, `FormularioNL.jsx` (com `SeletorComLupa` para NEs)
-    - `paginas/OrdemBancaria/ListagemOB.jsx`, `FormularioOB.jsx` (com `SeletorComLupa` para NLs)
-    - `paginas/NotaEmpenho/DetalheNE.jsx` — exibe dados da NE + lista de NLs vinculadas + botões de ação
+    - `pages/Settlement/SettlementList.jsx`, `SettlementForm.jsx` (com `SearchSelector` para NEs)
+    - `pages/PaymentOrder/PaymentOrderList.jsx`, `PaymentOrderForm.jsx` (com `SearchSelector` para NLs)
+    - `pages/Commitment/CommitmentDetail.jsx` — exibe dados da NE + lista de NLs vinculadas + botões de ação
     - Botões contextuais por status em NL e OB
-15. Executar `mvn verify` — cobertura `liquidacao` e `ordembancaria` ≥ 90%
+15. Executar `mvn verify` — cobertura `settlement` e `paymentorder` ≥ 90%
 
 #### Resultado Esperado
 
-- Código de Liquidação e OB implementado (tabelas já existiam da V5)
-- Liquidação valida limites e tipo da NE; propaga status corretamente
-- OB emitida, processada (NE → PAGA) e cancelável
+- Código de Settlement e PaymentOrder implementado (tabelas já existiam da V5)
+- Settlement valida limites e tipo da NE; propaga status corretamente
+- OB emitida, processada (NE → PAID) e cancelável
 - Fluxo ponta a ponta Dotação → NC → NE → NL → OB funcional
-- Frontend com telas de liquidação e OB
+- Frontend com telas de settlement e OB
 
 #### Verificação Automatizada (AI Gate)
 
-1. `mvn verify` — cobertura `liquidacao` e `ordembancaria` ≥ 90%
-2. `POST /api/v1/liquidacoes` NE ORDINARIO valor total → 201; `GET /api/v1/notas-empenho/{id}` → `status=LIQUIDADA`
-3. `POST /api/v1/liquidacoes` NE ORDINARIO valor parcial → 422
-4. `POST /api/v1/liquidacoes` valor acima do saldo → 422
-5. `PATCH /api/v1/liquidacoes/{id}/estornar` sem OB → 200 `status=ESTORNADA`
-6. `POST /api/v1/ordens-bancarias` para NL registrada → 201 `status=EMITIDA`
-7. `PATCH /api/v1/ordens-bancarias/{id}/processar` → 200; NE → `status=PAGA`
-8. `PATCH /api/v1/ordens-bancarias/{id}/cancelar` → 200 `status=CANCELADA`
+1. `mvn verify` — cobertura `settlement` e `paymentorder` ≥ 90%
+2. `POST /api/v1/settlements` NE ORDINARY valor total → 201; `GET /api/v1/commitments/{id}` → `status=SETTLED`
+3. `POST /api/v1/settlements` NE ORDINARY valor parcial → 422
+4. `POST /api/v1/settlements` valor acima do saldo → 422
+5. `PATCH /api/v1/settlements/{id}/reverse` sem OB → 200 `status=REVERSED`
+6. `POST /api/v1/payment-orders` para NL registrada → 201 `status=ISSUED`
+7. `PATCH /api/v1/payment-orders/{id}/process` → 200; NE → `status=PAID`
+8. `PATCH /api/v1/payment-orders/{id}/cancel` → 200 `status=CANCELLED`
 9. Teste de integração F5-10 (fluxo completo) passa
 10. `npm test --prefix frontend` — testes de NL e OB passam
 
 #### Verificação Humana (Human Gate)
 
-1. Executar fluxo completo: dotação → NC → NE → NL → OB → processar OB; verificar NE com status PAGA
+1. Executar fluxo completo: dotação → NC → NE → NL → OB → processar OB; verificar NE com status PAID
 2. Tentar estornar NL com OB — mensagem de erro
-3. Tentar liquidar parcialmente NE ORDINARIO — mensagem de erro
+3. Tentar liquidar parcialmente NE ORDINARY — mensagem de erro
 4. **QA executa os casos F5-01 a F5-10 (`13-qa-process.md`) e assina o aceite da FASE 5**
 
 #### Critérios de Sucesso
 
-✅ Liquidação total de NE ORDINARIO → NE LIQUIDADA
-✅ Liquidação parcial de NE ESTIMATIVO → NE PARCIALMENTE_LIQUIDADA
-✅ Liquidação parcial de NE ORDINARIO → 422
-✅ Liquidação acima do saldo → 422
-✅ Estorno de NL sem OB → NE volta para A_LIQUIDAR ou PARCIALMENTE_LIQUIDADA
-✅ Estorno de NL com OB não cancelada → 422
+✅ Settlement total de NE ORDINARY → NE SETTLED
+✅ Settlement parcial de NE ESTIMATED → NE PARTIALLY_SETTLED
+✅ Settlement parcial de NE ORDINARY → 422
+✅ Settlement acima do saldo → 422
+✅ Reverse de NL sem OB → NE volta para PENDING_SETTLEMENT ou PARTIALLY_SETTLED
+✅ Reverse de NL com OB não cancelada → 422
 ✅ OB emitida para NL registrada
-✅ OB processada → NE PAGA
+✅ OB processada → NE PAID
 ✅ OB cancelada → NE não alterada
 ✅ Fluxo completo F5-10 funcional
-✅ Cobertura `liquidacao` e `ordembancaria` ≥ 90%
+✅ Cobertura `settlement` e `paymentorder` ≥ 90%
 ✅ Frontend funcional para NL e OB
 ✅ **QA sign-off obtido (FASE 5)**
 
@@ -1023,96 +1023,96 @@ FASE-005 Liquidação e Ordem Bancária
 
 #### Plano
 
-1. Criar migração `V6__criar_tabela_auditoria.sql`:
+1. Criar migração `V6__create_audit_table.sql`:
    - Tabela `auditoria` conforme DDL em `04-database-design.md`
    - Índices `idx_auditoria_entidade`, `idx_auditoria_usuario`, `idx_auditoria_data`
-2. Criar migração `V7__criar_indices_restantes.sql` com os índices que ainda não foram criados nas migrations anteriores:
+2. Criar migração `V7__create_indexes.sql` com os índices que ainda não foram criados nas migrations anteriores:
    - `idx_ug_codigo`, `idx_ug_superior`, `idx_fornecedor_cnpj`, `idx_ne_numero`, `idx_ne_dotacao`, `idx_ne_status`, `idx_ne_ug_exercicio`, `idx_nc_numero`, `idx_nc_status`, `idx_nl_ne`, `idx_ob_liquidacao`
 
    > **Nota:** Alguns desses índices já foram criados em V2, V3, V4, V5. V7 só deve criar os que ainda não existem.
 
-3. Criar entidade JPA `Auditoria` em `auditoria/` com campos: `usuarioLogin`, `dataHora`, `operacao`, `entidade`, `entidadeId`, `dadosAntes` (JsonNode), `dadosDepois` (JsonNode), `ip`, `ugId`
-4. Criar `AuditoriaRepository` com `findAllBy...` usando os filtros do endpoint
-5. Criar a anotação `@Auditavel(operacao, entidade)` em `auditoria/`
-6. Implementar `AuditoriaInterceptor` (Spring AOP `@Around`):
-   - Intercepta métodos anotados com `@Auditavel`
-   - Captura: usuário logado via `ContextoSeguranca`, IP via `HttpServletRequest` (injetado via `RequestContextHolder`), estado antes (chamando o repositório antes da operação), estado depois (o objeto retornado), timestamp
-   - Persiste em `auditoria` via `AuditoriaRepository.save()` dentro do mesmo contexto transacional
-7. Anotar com `@Auditavel` os métodos de escrita nos Services:
-   - `NotaCreditoService`: `aprovar`, `cancelar`, `estornar`
-   - `NotaEmpenhoService`: `emitir`, `reforcar`, `anular`
-   - `LiquidacaoEmpenhoService`: `registrar`, `estornar`
-   - `OrdemBancariaService`: `emitir`, `processar`, `cancelar`
-   - `AutenticacaoService.login` (operação: `AUTENTICACAO`, entidade: `Usuario`)
-8. Criar `AuditoriaController`: `GET /api/v1/auditoria` (filtros: `usuarioLogin`, `entidade`, `operacao`, `dataInicio`, `dataFim`, `ugId`; paginado)
-9. Criar entidade JPA `TokenIntegracao` em `token/` (tabela já existe da V1)
-10. Criar `TokenIntegracaoRepository`: `findByUsuarioLogin(String login)`, `findByTokenHash(String hash)`, `existsByIdAndUsuarioLogin(Long id, String login)`
-11. Implementar `TokenIntegracaoService`:
-    - `gerar(req, usuarioLogin)` — gera string aleatória `sifu_tk_` + UUID; calcula SHA-256; persiste como hash; retorna token em texto claro **apenas neste momento**
-    - `listar(usuarioLogin)` — retorna metadados (sem o token); ordena por `dataCriacao DESC`
-    - `revogar(id, usuarioLogin)` — verifica que o token pertence ao usuário logado; status → `REVOGADO`
-    - `validarToken(String tokenTextoClaro)` — calcula SHA-256; busca por hash; verifica `status=ATIVO` e `dataExpiracao > agora`; se inválido → exceção
-12. Atualizar `JwtFiltro` para suportar os dois tipos de token:
-    - Se header `Authorization: Bearer sifu_tk_...` → autenticar via `TokenIntegracaoService.validarToken()`; montar `Authentication` com o login do dono do token
+3. Criar entidade JPA `AuditEntry` em `audit/` com campos: `usuarioLogin`, `dataHora`, `operation`, `entity`, `entidadeId`, `dadosAntes` (JsonNode), `dadosDepois` (JsonNode), `ip`, `ugId`
+4. Criar `AuditEntryRepository` com `findAllBy...` usando os filtros do endpoint
+5. Criar a anotação `@Auditable(operation, entity)` em `audit/`
+6. Implementar `AuditInterceptor` (Spring AOP `@Around`):
+   - Intercepta métodos anotados com `@Auditable`
+   - Captura: usuário logado via `SecurityContext`, IP via `HttpServletRequest` (injetado via `RequestContextHolder`), estado antes (chamando o repositório antes da operação), estado depois (o objeto retornado), timestamp
+   - Persiste em `auditoria` via `AuditEntryRepository.save()` dentro do mesmo contexto transacional
+7. Anotar com `@Auditable` os métodos de escrita nos Services:
+   - `CreditNoteService`: `approve`, `cancel`, `reverse`
+   - `CommitmentService`: `issue`, `reinforce`, `voidCommitment`
+   - `SettlementService`: `register`, `reverse`
+   - `PaymentOrderService`: `issue`, `process`, `cancel`
+   - `AuthService.login` (operation: `AUTHENTICATION`, entity: `User`)
+8. Criar `AuditController`: `GET /api/v1/audit-log` (filtros: `usuarioLogin`, `entity`, `operation`, `dataInicio`, `dataFim`, `ugId`; paginado)
+9. Criar entidade JPA `IntegrationToken` em `token/` (tabela já existe da V1)
+10. Criar `IntegrationTokenRepository`: `findByUsuarioLogin(String login)`, `findByTokenHash(String hash)`, `existsByIdAndUsuarioLogin(Long id, String login)`
+11. Implementar `IntegrationTokenService`:
+    - `generate(req, usuarioLogin)` — gera string aleatória `sifu_tk_` + UUID; calcula SHA-256; persiste como hash; retorna token em texto claro **apenas neste momento**
+    - `list(usuarioLogin)` — retorna metadados (sem o token); ordena por `dataCriacao DESC`
+    - `revoke(id, usuarioLogin)` — verifica que o token pertence ao usuário logado; status → `REVOKED`
+    - `validateToken(String tokenTextoClaro)` — calcula SHA-256; busca por hash; verifica `status=ACTIVE` e `dataExpiracao > agora`; se inválido → exceção
+12. Atualizar `JwtFilter` para suportar os dois tipos de token:
+    - Se header `Authorization: Bearer sifu_tk_...` → autenticar via `IntegrationTokenService.validateToken()`; montar `Authentication` com o login do dono do token
     - Caso contrário → fluxo JWT existente
     - Registrar no MDC o tipo de autenticação (`SESSAO` ou `INTEGRACAO`)
 13. Implementar rate limiting por token de integração:
     - Criar `RateLimitService` com `ConcurrentHashMap<String, Deque<Long>>` (por hash do token, guarda timestamps de requisições no último minuto)
-    - Verificar no `JwtFiltro` após autenticação de token de integração: se contagem no último minuto ≥ `RATE_LIMIT_RPM` → retornar 429 com `Retry-After: 60`
-14. Criar `TokenIntegracaoController`: `GET /api/v1/tokens`, `POST /api/v1/tokens`, `DELETE /api/v1/tokens/{id}`
-15. Implementar `ConsultaService` em `consulta/`:
-    - `execucaoOrcamentaria(filtros)` — query JPQL/nativa juntando dotações, NEs e NLs:
+    - Verificar no `JwtFilter` após autenticação de token de integração: se contagem no último minuto ≥ `RATE_LIMIT_RPM` → retornar 429 com `Retry-After: 60`
+14. Criar `IntegrationTokenController`: `GET /api/v1/tokens`, `POST /api/v1/tokens`, `DELETE /api/v1/tokens/{id}`
+15. Implementar `ReportService` em `report/`:
+    - `budgetExecution(filtros)` — query JPQL/nativa juntando dotações, NEs e NLs:
       - `dotacaoAtualizada`: `valor_atualizado` da dotação
-      - `empenhado`: soma NEs com status ≠ `ANULADA`
-      - `aLiquidar`: NEs com status `A_LIQUIDAR` + `PARCIALMENTE_LIQUIDADA`
-      - `liquidado`: soma NLs `REGISTRADA`
-      - `aPagar`: NEs `LIQUIDADA` (sem OB `PROCESSADA`)
-      - `pago`: NEs `PAGA`
+      - `empenhado`: soma NEs com status ≠ `VOIDED`
+      - `aLiquidar`: NEs com status `PENDING_SETTLEMENT` + `PARTIALLY_SETTLED`
+      - `liquidado`: soma NLs `REGISTERED`
+      - `aPagar`: NEs `SETTLED` (sem OB `PROCESSED`)
+      - `pago`: NEs `PAID`
       - `saldoDisponivel`: `dotacaoAtualizada - empenhado + NCs_cedidas - NCs_recebidas` (sinal invertido)
     - `dashboard(Long ugId, Integer exercicio)` — agrega os mesmos valores por UG/exercício
-16. Criar `ConsultaController`: `GET /api/v1/consultas/execucao-orcamentaria`, `GET /api/v1/consultas/dashboard`
-17. Implementar administração de usuários em `usuario/`:
-    - `UsuarioService`: `listar`, `criar` (com BCrypt-12 na senha), `buscarPorId`, `atualizar`, `desativar`
-    - `UsuarioController`: `GET /api/v1/usuarios`, `POST`, `GET /{id}`, `PUT /{id}`, `PATCH /{id}/desativar`
-    - Reutilizar `UsuarioRepository` da FASE-001
-18. Escrever testes unitários `ConsultaServiceTest`:
+16. Criar `ReportController`: `GET /api/v1/reports/budget-execution`, `GET /api/v1/reports/dashboard`
+17. Implementar administração de usuários em `user/`:
+    - `UserService`: `list`, `create` (com BCrypt-12 na senha), `findById`, `update`, `deactivate`
+    - `UserController`: `GET /api/v1/users`, `POST`, `GET /{id}`, `PUT /{id}`, `PATCH /{id}/deactivate`
+    - Reutilizar `UserRepository` da FASE-001
+18. Escrever testes unitários `ReportServiceTest`:
     ```
-    static final Long       UG_ID              = 1L;
-    static final Integer    EXERCICIO          = 2025;
-    static final BigDecimal VALOR_DOTACAO      = BigDecimal.valueOf(1_000_000);
-    static final BigDecimal VALOR_EMPENHADO    = BigDecimal.valueOf(400_000);
-    static final BigDecimal VALOR_LIQUIDADO    = BigDecimal.valueOf(300_000);
-    static final BigDecimal VALOR_PAGO         = BigDecimal.valueOf(200_000);
-    static final double     PERCENTUAL_EXEC    = 40.0;
+    static final Long       UNIT_ID            = 1L;
+    static final Integer    FISCAL_YEAR        = 2025;
+    static final BigDecimal ALLOTMENT_VALUE    = BigDecimal.valueOf(1_000_000);
+    static final BigDecimal COMMITTED_VALUE    = BigDecimal.valueOf(400_000);
+    static final BigDecimal SETTLED_VALUE      = BigDecimal.valueOf(300_000);
+    static final BigDecimal PAID_VALUE         = BigDecimal.valueOf(200_000);
+    static final double     EXECUTION_PERCENTAGE = 40.0;
     ```
-    - `deveCalcularDashboardComValoresCorretos()`
-    - `deveRetornarExecucaoOrcamentariaComTotaisCorretos()`
-    - `deveRetornarZeroParaUGSemMovimentacao()`
-19. Escrever testes unitários `TokenIntegracaoServiceTest`:
+    - `shouldCalculateDashboardWithCorrectValues()`
+    - `shouldReturnBudgetExecutionWithCorrectTotals()`
+    - `shouldReturnZeroForUnitWithNoTransactions()`
+19. Escrever testes unitários `IntegrationTokenServiceTest`:
     ```
-    static final String TOKEN_NOME    = "Sistema de Compras";
-    static final String USUARIO_LOGIN = "admin";
+    static final String TOKEN_NAME    = "Sistema de Compras";
+    static final String USER_LOGIN    = "admin";
     ```
-    - `deveGerarTokenComHashDiferenteDoTexto()`
-    - `deveValidarTokenAtivo()`
-    - `deveLancarExcecaoAoValidarTokenRevogado()`
-    - `deveLancarExcecaoAoValidarTokenExpirado()`
+    - `shouldGenerateTokenWithHashDifferentFromPlainText()`
+    - `shouldValidateActiveToken()`
+    - `shouldThrowExceptionWhenValidatingRevokedToken()`
+    - `shouldThrowExceptionWhenValidatingExpiredToken()`
 20. Escrever testes de integração (Testcontainers) cobrindo F6-01 a F6-09 de `13-qa-process.md`
 21. Escrever teste específico de rate limiting:
     ```
-    static final int LIMITE_RPM           = 100;
-    static final int TOTAL_REQUISICOES    = 101;
+    static final int RPM_LIMIT         = 100;
+    static final int TOTAL_REQUESTS    = 101;
     ```
-    - `deveRetornar429AposExcederLimiteDeRequisicoes()`
+    - `shouldReturn429AfterExceedingRequestLimit()`
 22. Criar frontend (completar o sistema):
-    - `paginas/Dashboard/PaginaDashboard.jsx` — 4 cartões de métricas (`CartaoMetrica`) + percentual executado
-    - `paginas/Consulta/PaginaExecucaoOrcamentaria.jsx` — filtros + tabela TanStack com totais
-    - `paginas/Token/PaginaTokens.jsx` — listagem de tokens + botão "Gerar Token" (modal exibe o token uma única vez com aviso explícito) + botão revogar
-    - `paginas/Auditoria/PaginaAuditoria.jsx` — tabela paginada com filtros por operação, entidade, usuário e período
-    - `paginas/Usuario/PaginaUsuarios.jsx`, `FormularioUsuario.jsx`
-    - Completar `MenuLateral` com todos os 8 módulos: Dashboard, Dotações, NCs, NEs, Liquidações, OBs, Consultas, Administração (usuários, tokens, auditoria)
-    - Completar `CabecalhoSistema` com nome do usuário logado e botão "Sair"
-23. Executar `mvn verify` — cobertura geral ≥ 80%; pacotes `consulta`, `token`, `auditoria` ≥ 90%
+    - `pages/Dashboard/DashboardPage.jsx` — 4 cartões de métricas (`MetricCard`) + percentual executado
+    - `pages/Report/BudgetExecutionPage.jsx` — filtros + tabela TanStack com totais
+    - `pages/Token/TokensPage.jsx` — listagem de tokens + botão "Gerar Token" (modal exibe o token uma única vez com aviso explícito) + botão revogar
+    - `pages/Audit/AuditLogPage.jsx` — tabela paginada com filtros por operação, entidade, usuário e período
+    - `pages/User/UsersPage.jsx`, `UserForm.jsx`
+    - Completar `SideMenu` com todos os 8 módulos: Dashboard, Dotações, NCs, NEs, Liquidações, OBs, Consultas, Administração (usuários, tokens, auditoria)
+    - Completar `SystemHeader` com nome do usuário logado e botão "Sair"
+23. Executar `mvn verify` — cobertura geral ≥ 80%; pacotes `report`, `token`, `audit` ≥ 90%
 
 #### Resultado Esperado
 
@@ -1127,12 +1127,12 @@ FASE-005 Liquidação e Ordem Bancária
 
 1. `mvn verify` — cobertura geral ≥ 80%; críticos ≥ 90%
 2. `POST /api/v1/tokens` → 201 com `token` em texto claro (apenas nesta resposta)
-3. `GET /api/v1/notas-empenho` com token de integração → 200
+3. `GET /api/v1/commitments` com token de integração → 200
 4. `DELETE /api/v1/tokens/{id}` → 204; usar token revogado → 401
-5. `GET /api/v1/consultas/dashboard?ugId=1&exercicio=2025` → DTO com 5 campos corretos
-6. `GET /api/v1/consultas/execucao-orcamentaria?ugId=1&exercicio=2025` → totais corretos
+5. `GET /api/v1/reports/dashboard?ugId=1&exercicio=2025` → DTO com 5 campos corretos
+6. `GET /api/v1/reports/budget-execution?ugId=1&exercicio=2025` → totais corretos
 7. 101 requisições com mesmo token em 1 minuto → última retorna 429
-8. `GET /api/v1/auditoria` após operações → entradas com campos corretos
+8. `GET /api/v1/audit-log` após operações → entradas com campos corretos
 9. `npm test --prefix frontend` — testes do dashboard e tokens passam
 
 #### Verificação Humana (Human Gate)
@@ -1145,9 +1145,9 @@ FASE-005 Liquidação e Ordem Bancária
 
 #### Critérios de Sucesso
 
-✅ Migration V6 cria tabela `auditoria`
+✅ Migration V6__create_audit_table cria tabela `auditoria`
 ✅ AOP registra operações financeiras automaticamente
-✅ `GET /api/v1/auditoria` retorna log paginado com filtros
+✅ `GET /api/v1/audit-log` retorna log paginado com filtros
 ✅ Token de integração gerado, listado e revogado
 ✅ API acessível com token de integração
 ✅ Token expirado e revogado → 401
@@ -1183,8 +1183,8 @@ FASE-006 Consultas, Dashboard e Tokens de Integração
 2. Criar `backend/src/main/resources/logback-spring.xml`:
    - Profile `default`/`dev`: appender console legível (`%d{HH:mm:ss} [%level] %logger{36} - %msg%n`)
    - Profile `prod`: appender console JSON via `LogstashEncoder` com campos: `timestamp`, `level`, `logger`, `message`, `traceId` (MDC), `usuarioLogin` (MDC)
-3. Atualizar `JwtFiltro` para registrar `usuarioLogin` no MDC (via `MDC.put("usuarioLogin", login)`) após autenticação bem-sucedida; limpar no `finally`
-4. Gerar `traceId` por requisição no `JwtFiltro` (UUID aleatório via `MDC.put("traceId", UUID.randomUUID())`); limpar no `finally`
+3. Atualizar `JwtFilter` para registrar `usuarioLogin` no MDC (via `MDC.put("usuarioLogin", login)`) após autenticação bem-sucedida; limpar no `finally`
+4. Gerar `traceId` por requisição no `JwtFilter` (UUID aleatório via `MDC.put("traceId", UUID.randomUUID())`); limpar no `finally`
 5. Verificar e completar a configuração do Spring Actuator em `application.yml`:
    - `management.endpoints.web.exposure.include: health,info,metrics,prometheus`
    - `management.endpoint.health.show-details: when-authorized`
@@ -1192,7 +1192,7 @@ FASE-006 Consultas, Dashboard e Tokens de Integração
    - Verificar que `GET /actuator/health` retorna `{"status":"UP","components":{"db":{"status":"UP"}}}`
 6. Adicionar dependência `micrometer-registry-prometheus` ao `pom.xml`
 7. Implementar métricas customizadas via `MeterRegistry` (injetar nos Services):
-   - `Counter.builder("sifu.operacoes").tag("tipo","login_sucesso").register(registry)` em `AutenticacaoService.login`
+   - `Counter.builder("sifu.operacoes").tag("tipo","login_sucesso").register(registry)` em `AuthService.login`
    - Contadores para: `ne_emitida`, `nc_aprovada`, `liquidacao_registrada`, `ob_processada`
    - Verificar que `GET /actuator/prometheus` exibe as métricas `sifu_operacoes_total`
 8. Criar `docker-compose.test.yml` na raiz:
@@ -1234,7 +1234,7 @@ FASE-006 Consultas, Dashboard e Tokens de Integração
 13. Executar teste de performance manual com dados de carga:
     - Seed de 500 NEs via script SQL direto
     - `GET /api/v1/notas-empenho?ugId=1&tamanho=20` → < 2s
-    - `GET /api/v1/consultas/execucao-orcamentaria?ugId=1&exercicio=2025` → < 3s
+    - `GET /api/v1/reports/budget-execution?ugId=1&exercicio=2025` → < 3s
     - Se algum target falhar, adicionar índices ou otimizar as queries JPQL
 14. Revisar e atualizar `README.md` com instruções completas:
     - Pré-requisitos (Java 21, Maven, Node 22, Docker Desktop)
@@ -1357,38 +1357,38 @@ MIN_ED    — Ministério da Educação                    (raiz)
 
 | Número | Origem → Destino | Valor | Status |
 |---|---|---|---|
-| 2025MINED000001 | SEPS → FNDE | R$ 1.200.000,00 | APROVADA |
-| 2025MINED000002 | SESU → SEPS | R$ 500.000,00 | APROVADA |
-| 2025MINED000003 | FNDE → SESU | R$ 300.000,00 | PENDENTE |
-| 2025MINED000004 | SEPS → SESU | R$ 800.000,00 | CANCELADA |
+| 2025MINED000001 | SEPS → FNDE | R$ 1.200.000,00 | APPROVED |
+| 2025MINED000002 | SESU → SEPS | R$ 500.000,00 | APPROVED |
+| 2025MINED000003 | FNDE → SESU | R$ 300.000,00 | PENDING |
+| 2025MINED000004 | SEPS → SESU | R$ 800.000,00 | CANCELLED |
 
 **Notas de Empenho (amostra representativa):**
 
 | NE | Dotação UG | Fornecedor | Valor | Tipo | Status |
 |---|---|---|---|---|---|
-| 2025SEPS000001 | SEPS/2030/339039 | Tecbrasil Soluções em TI | R$ 480.000,00 | ORDINARIO | PAGA |
-| 2025SEPS000002 | SEPS/2030/339039 | Gráfica e Serviços Nacionais | R$ 95.000,00 | ESTIMATIVO | LIQUIDADA |
-| 2025SEPS000003 | SEPS/2030/449051 | Construtora Horizonte | R$ 4.200.000,00 | GLOBAL | PARCIALMENTE_LIQUIDADA |
-| 2025SESU000001 | SESU/20RK/339039 | Papelaria Central do Brasil | R$ 750.000,00 | ORDINARIO | A_LIQUIDAR |
-| 2025SESU000002 | SESU/20RK/339030 | Editora Conhecimento Vivo | R$ 180.000,00 | ESTIMATIVO | A_LIQUIDAR |
-| 2025FNDE000001 | FNDE/0E36/339039 | Tecbrasil Soluções em TI | R$ 320.000,00 | ORDINARIO | ANULADA |
-| 2025SEPS000004 | SEPS/2030/339039 | Papelaria Central do Brasil | R$ 60.000,00 | ORDINARIO | A_LIQUIDAR |
+| 2025SEPS000001 | SEPS/2030/339039 | Tecbrasil Soluções em TI | R$ 480.000,00 | ORDINARY | PAID |
+| 2025SEPS000002 | SEPS/2030/339039 | Gráfica e Serviços Nacionais | R$ 95.000,00 | ESTIMATED | SETTLED |
+| 2025SEPS000003 | SEPS/2030/449051 | Construtora Horizonte | R$ 4.200.000,00 | GLOBAL | PARTIALLY_SETTLED |
+| 2025SESU000001 | SESU/20RK/339039 | Papelaria Central do Brasil | R$ 750.000,00 | ORDINARY | PENDING_SETTLEMENT |
+| 2025SESU000002 | SESU/20RK/339030 | Editora Conhecimento Vivo | R$ 180.000,00 | ESTIMATED | PENDING_SETTLEMENT |
+| 2025FNDE000001 | FNDE/0E36/339039 | Tecbrasil Soluções em TI | R$ 320.000,00 | ORDINARY | VOIDED |
+| 2025SEPS000004 | SEPS/2030/339039 | Papelaria Central do Brasil | R$ 60.000,00 | ORDINARY | PENDING_SETTLEMENT |
 
-> Os dados são construídos de forma que o dashboard da UG `SEPS` para 2025 exiba todos os quatro indicadores preenchidos: crédito disponível, empenhado, liquidado e pago.
+> Os dados são construídos de forma que o dashboard da UG `SEPS` para 2025 exiba todos os quatro indicadores preenchidos: crédito disponível, committed, settled e paid.
 
 #### Plano
 
-1. Criar a migração `V9__dados_demonstracao.sql` em `backend/src/main/resources/db/migration/`:
+1. Criar a migração `V9__demo_data.sql` em `backend/src/main/resources/db/migration/`:
    - Proteger com condição: `INSERT ... WHERE NOT EXISTS (SELECT 1 FROM unidades_gestoras WHERE codigo_ug = 'MIN_ED')` — idempotente, não duplica dados se migration for re-executada em ambiente de desenvolvimento com banco recriado
    - Inserir UGs na ordem: `MIN_ED` primeiro (sem superior), depois as três subordinadas (com `orgao_superior_id` referenciando `MIN_ED`)
    - Inserir as 3 ações orçamentárias, 2 planos internos, 3 naturezas de despesa, 2 fontes, 2 PTRES
    - Inserir as 5 dotações com seus vínculos às classificações e UGs
    - Inserir os 5 fornecedores
-   - Inserir as 4 NCs (gerando números manualmente, pois `GeradorNumeracaoDocumento` é código de aplicação)
+   - Inserir as 4 NCs (gerando números manualmente, pois `DocumentNumberGenerator` é código de aplicação)
    - Atualizar `sequencias_documentos` para refletir os sequenciais usados
    - Inserir as 7 NEs com os estados correspondentes
-   - Inserir liquidações para as NEs com status `PAGA`, `LIQUIDADA` e `PARCIALMENTE_LIQUIDADA`
-   - Inserir OBs para as liquidações das NEs `PAGA`
+   - Inserir liquidações para as NEs com status `PAID`, `SETTLED` e `PARTIALLY_SETTLED`
+   - Inserir OBs para as liquidações das NEs `PAID`
    - Inserir entradas na tabela `auditoria` para as operações principais (login do admin, aprovações, emissões)
 
 2. A migration deve seguir a ordem de inserção que respeita as FKs:
@@ -1432,7 +1432,7 @@ MIN_ED    — Ministério da Educação                    (raiz)
 
 6. Verificar consistência dos dados executando as queries de saldo via API após aplicar a migration:
    - `GET /api/v1/dotacoes/{id}/saldo` para cada dotação — valores devem bater com os calculados manualmente
-   - `GET /api/v1/consultas/dashboard?ugId={SEPS_ID}&exercicio=2025` — todos os 5 campos preenchidos com valores > 0
+   - `GET /api/v1/reports/dashboard?ugId={SEPS_ID}&exercicio=2025` — todos os 5 campos preenchidos com valores > 0
    - `GET /api/v1/notas-empenho?ugId={SEPS_ID}` — 4 NEs listadas em estados distintos
 
 7. Atualizar o README com seção "Dados de Demonstração":
@@ -1443,20 +1443,20 @@ MIN_ED    — Ministério da Educação                    (raiz)
 #### Resultado Esperado
 
 - Migration V9 aplicada ao subir o sistema — dados de demonstração carregados automaticamente
-- Dashboard de SEPS/2025 exibe: crédito disponível, total empenhado, liquidado e pago com valores reais
-- Listagem de NEs mostra documentos em todos os 5 estados (A_LIQUIDAR, PARCIALMENTE_LIQUIDADA, LIQUIDADA, PAGA, ANULADA)
-- Listagem de NCs mostra os 4 estados (PENDENTE, APROVADA, CANCELADA — sem ESTORNADA para deixar esse fluxo disponível para demonstração manual)
+- Dashboard de SEPS/2025 exibe: crédito disponível, total committed, settled e paid com valores reais
+- Listagem de NEs mostra documentos em todos os 5 estados (PENDING_SETTLEMENT, PARTIALLY_SETTLED, SETTLED, PAID, VOIDED)
+- Listagem de NCs mostra os 4 estados (PENDING, APPROVED (×2), CANCELLED — sem REVERSED para deixar esse fluxo disponível para demonstração manual)
 - Log de auditoria pré-populado com operações
 - Arquivo `dados-demonstracao.md` guia qualquer apresentação do sistema
 
 #### Verificação Automatizada (AI Gate)
 
-1. `docker compose up --build` → migration V9 aplicada sem erros
-2. `GET /api/v1/dotacoes/{id}/saldo` para a dotação SEPS/2030/339039 → `saldoDisponivel > 0`
-3. `GET /api/v1/consultas/dashboard?ugId={SEPS_ID}&exercicio=2025` → todos os 5 campos > 0
-4. `GET /api/v1/notas-empenho?ugId={SEPS_ID}` → NEs em pelo menos 4 status distintos
-5. `GET /api/v1/notas-credito?status=APROVADA` → pelo menos 2 NCs aprovadas
-6. `GET /api/v1/auditoria` → pelo menos 10 entradas de auditoria pré-carregadas
+1. `docker compose up --build` → migration V9__demo_data aplicada sem erros
+2. `GET /api/v1/allotments/{id}/saldo` para a dotação SEPS/2030/339039 → `saldoDisponivel > 0`
+3. `GET /api/v1/reports/dashboard?ugId={SEPS_ID}&exercicio=2025` → todos os 5 campos > 0
+4. `GET /api/v1/commitments?ugId={SEPS_ID}` → NEs em pelo menos 4 status distintos
+5. `GET /api/v1/credit-notes?status=APPROVED` → pelo menos 2 NCs aprovadas
+6. `GET /api/v1/audit-log` → pelo menos 10 entradas de auditoria pré-carregadas
 7. Verificar idempotência: executar V9 duas vezes (simulando re-run) não duplica registros
 
 **Esperado:**
@@ -1473,12 +1473,12 @@ MIN_ED    — Ministério da Educação                    (raiz)
 
 #### Critérios de Sucesso
 
-✅ Migration V9 idempotente criada e aplicada automaticamente
+✅ Migration V9__demo_data idempotente criada e aplicada automaticamente
 ✅ 4 UGs com hierarquia correta (MIN_ED raiz + 3 subordinadas)
 ✅ 5 dotações com valores distintos e saldos positivos
-✅ 4 NCs em estados: PENDENTE, APROVADA (×2), CANCELADA
-✅ 7 NEs em estados: A_LIQUIDAR (×3), PARCIALMENTE_LIQUIDADA, LIQUIDADA, PAGA, ANULADA
-✅ Liquidações e OBs para NEs PAGA e LIQUIDADA
+✅ 4 NCs em estados: PENDING, APPROVED (×2), CANCELLED
+✅ 7 NEs em estados: PENDING_SETTLEMENT (×3), PARTIALLY_SETTLED, SETTLED, PAID, VOIDED
+✅ Liquidações e OBs para NEs PAID e SETTLED
 ✅ Dashboard SEPS/2025 exibe todos os indicadores com valores > 0
 ✅ Log de auditoria pré-populado
 ✅ Script de reset `demo-reset.sql` funcional
@@ -1498,8 +1498,8 @@ _Nenhuma fase de correção de bugs ainda. As fases de correção serão adicion
 - O plano tem **9 fases** (FASE-000 a FASE-008): 6 fases de funcionalidade com QA sign-off, 1 de infraestrutura base, 1 operacional e 1 de dados de demonstração
 - Cada fase de implementação (FASE-001 a FASE-006) corresponde a uma fase de QA em `docs/solution-design/13-qa-process.md` — **nenhuma fase avança sem o sign-off do QA**
 - As fases FASE-003 a FASE-005 cobrem os fluxos críticos (NC, NE, NL, OB) que exigem cobertura ≥ 90%
-- A migration V5 é criada **completa** na FASE-004 (incluindo tabelas de NL e OB) para evitar migrações parciais; o código de serviço de NL e OB é implementado na FASE-005
-- A `sequencias_documentos` foi movida para a migration V4 (em relação ao design original) pois é necessária já na FASE-003 para numeração de NCs
+- A migration V5__create_execution_tables é criada **completa** na FASE-004 (incluindo tabelas de NL e OB) para evitar migrações parciais; o código de serviço de NL e OB é implementado na FASE-005
+- A `sequencias_documentos` foi movida para a migration V4__create_budget_tables (em relação ao design original) pois é necessária já na FASE-003 para numeração de NCs
 - Os testes de integração usam Testcontainers com PostgreSQL real — nenhum mock de banco de dados é permitido nos fluxos financeiros críticos
 - **Todas as constantes de teste** devem ser declaradas no topo da classe/arquivo, antes de qualquer método, conforme a convenção em `docs/solution-design/09-testing.md`
 - O frontend segue o design visual do SIAFI Web conforme `docs/solution-design/07-frontend-design.md` com a paleta DSGov (primary `#1351B4`, fonte Rawline)
