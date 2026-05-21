@@ -87,7 +87,7 @@ O **SIFU (Sistema Integrado Financeiro Unificado)** é um sistema web educaciona
 | Mapeamento | MapStruct 1.5.x |
 | Segurança | Spring Security + JJWT 0.12.x |
 | Documentação API | SpringDoc OpenAPI 2.x (Swagger UI) |
-| Testes Backend | JUnit 5 + Mockito + Testcontainers (PostgreSQL real) |
+| Testes Backend | JUnit 5 + Mockito + Testcontainers (PostgreSQL real) + ArchUnit (arquitetura) |
 | Build Backend | Maven 3.9+ |
 | Framework Frontend | React 18 + Vite 5 |
 | Roteamento | React Router 6 |
@@ -183,6 +183,7 @@ Nenhuma
 | `testcontainers` (BOM) | test | Testcontainers BOM |
 | `testcontainers-postgresql` | test | PostgreSQL real para testes |
 | `testcontainers-junit-jupiter` | test | Integração JUnit 5 |
+| `archunit-junit5` | test | Testes de regras da Arquitetura Hexagonal |
 
 #### Pacotes Frontend (package.json)
 
@@ -217,18 +218,26 @@ Nenhuma
    - Adicionar todas as dependências listadas na seção "Pacotes Backend"
    - Configurar `maven-compiler-plugin` com `-Amapstruct.defaultComponentModel=spring` e `-Amapstruct.unmappedTargetPolicy=ERROR`
    - Configurar `jacoco-maven-plugin` com threshold de cobertura geral 80% e pacotes críticos 90% (`auth`, `commitment`, `settlement`, `paymentorder`, `creditnote`)
-6. Criar a estrutura completa de pacotes em `backend/src/main/java/br/gov/sifu/` conforme `05-backend-design.md`:
-   - `auth/` (com subpacote `dto/`)
-   - `managingunit/` (com `dto/`)
-   - `classification/budgetaction/`, `classification/internalplan/`, `classification/expensenature/`, `classification/fundingsource/`, `classification/ptres/`
-   - `allotment/`, `creditnote/`, `vendor/`, `commitment/`, `settlement/`, `paymentorder/`
-   - `report/`, `user/`, `token/`, `audit/`
-   - `common/exception/`, `common/pagination/`, `common/security/`, `common/sequence/`
-7. Criar as classes base em `common/`:
-   - `ProblemDetail.java` — DTO de erro RFC 7807 com campos: `tipo`, `titulo`, `status`, `detalhe`, `instancia`
-   - `GlobalExceptionHandler.java` — `@ControllerAdvice` com estrutura RFC 7807 (handlers serão adicionados por fase)
-   - `PaginationUtils.java` — método `construirPageable(Integer pagina, Integer tamanho, String ordenarPor, String direcao)` com validação de `tamanho` máximo 100
-   - `SecurityConfig.java` — `@Configuration @EnableWebSecurity` com `permitAll()` em todos os endpoints (stub provisório; substituído na FASE-001)
+6. Criar a estrutura completa de pacotes em `backend/src/main/java/br/gov/sifu/` conforme `05-backend-design.md` (Arquitetura Hexagonal):
+   - `domain/model/vo/` — Value Objects
+   - `domain/port/in/` — interfaces de casos de uso (Input Ports)
+   - `domain/port/out/` — interfaces de repositório (Output Ports)
+   - `domain/exception/` — exceções de domínio puras (sem Spring)
+   - `application/usecase/` — implementações dos casos de uso com `@UseCase`
+   - `infrastructure/web/dto/`, `infrastructure/web/mapper/` — controllers REST, DTOs (Records), MapStruct
+   - `infrastructure/persistence/entity/`, `infrastructure/persistence/repository/`, `infrastructure/persistence/adapter/` — JPA entities (@Entity somente aqui), Spring Data repos, Persistence Adapters
+   - `infrastructure/security/` — SecurityConfig, JwtFilter, JwtService
+   - `infrastructure/notification/` — EmailNotificationAdapter
+   - `infrastructure/audit/` — AuditInterceptor (@Aspect)
+   - `infrastructure/config/` — ApplicationConfig (@Bean wiring explícito)
+7. Criar as classes base:
+   - `domain/exception/DomainException.java` — base (`extends RuntimeException`) sem dependências de framework
+   - `domain/exception/EntityNotFoundException.java`, `InsufficientBalanceException.java`, `InvalidStateTransitionException.java` — exceções de domínio
+   - `application/usecase/UseCase.java` — anotação: `@Target(TYPE) @Retention(RUNTIME) @Service`
+   - `infrastructure/web/dto/PageResponse.java` — record genérico `PageResponse<T>` com factory `of(Page<T>)`
+   - `infrastructure/web/GlobalExceptionHandler.java` — `@ControllerAdvice` com handlers RFC 7807 (handlers de domínio adicionados por fase)
+   - `infrastructure/security/SecurityConfig.java` — `@Configuration @EnableWebSecurity` com `permitAll()` em todos os endpoints (stub provisório; substituído na FASE-001)
+   - `infrastructure/config/ApplicationConfig.java` — stub com comentário indicando onde o @Bean wiring será adicionado por fase
 8. Criar `backend/src/main/resources/application.yml` com:
    - `spring.datasource.url/username/password` usando variáveis de ambiente (`${SPRING_DATASOURCE_URL}` etc.)
    - `spring.jpa.hibernate.ddl-auto: validate`
@@ -255,7 +264,8 @@ Nenhuma
 17. Criar `frontend/Dockerfile` e `frontend/nginx.conf` conforme `12-deployment.md`
 18. Criar `backend/Dockerfile` conforme `12-deployment.md`
 19. Criar `.github/workflows/ci.yml` com dois jobs stub que fazem apenas `checkout` e retornam sucesso (completado na FASE-007)
-20. Verificar: `docker compose up -d banco` → `pg_isready` retorna saudável; `mvn compile` passa; `npm ci` instala sem erros
+20. Criar `backend/src/test/java/br/gov/sifu/HexagonalArchitectureTest.java` com as cinco regras ArchUnit documentadas em `05-backend-design.md`: `domainHasNoFrameworkDependencies`, `applicationDoesNotDependOnInfrastructure`, `controllersAreOnlyInWeb`, `entitiesAreOnlyInPersistence`, `useCasesImplementTheirPort` — todas passam com zero classes ainda (exceto stubs criados nos passos anteriores)
+21. Verificar: `docker compose up -d banco` → `pg_isready` retorna saudável; `mvn compile` passa; `npm ci` instala sem erros
 
 #### Resultado Esperado
 
@@ -270,13 +280,14 @@ Nenhuma
 #### Verificação Automatizada (AI Gate)
 
 1. `mvn compile -f backend/pom.xml` — compilação sem erros
-2. `docker compose up -d banco` seguido de `docker exec sifu-banco pg_isready -U sifu` — retorna "accepting connections"
-3. `npm ci --prefix frontend` — dependências instaladas sem erros
-4. `npx jest --passWithNoTests --prefix frontend` — runner Jest inicia sem erros de configuração
-5. Verificar que `.env` está no `.gitignore` e `git status` não o exibe
+2. `mvn test -pl backend -Dtest=HexagonalArchitectureTest` — todas as 5 regras ArchUnit passam
+3. `docker compose up -d banco` seguido de `docker exec sifu-banco pg_isready -U sifu` — retorna "accepting connections"
+4. `npm ci --prefix frontend` — dependências instaladas sem erros
+5. `npx jest --passWithNoTests --prefix frontend` — runner Jest inicia sem erros de configuração
+6. Verificar que `.env` está no `.gitignore` e `git status` não o exibe
 
 **Esperado:**
-- Backend compila; PostgreSQL acessível em `localhost:5432`; Jest configurado
+- Backend compila; ArchUnit passa; PostgreSQL acessível em `localhost:5432`; Jest configurado
 
 #### Verificação Humana (Human Gate)
 
@@ -290,11 +301,12 @@ Nenhuma
 ✅ `backend/`, `frontend/`, `docker-compose.yml`, `.env.example`, `.github/` criados e commitados
 ✅ `mvn compile` passa sem erros
 ✅ Spring Boot inicia e conecta ao PostgreSQL via `docker compose up`
+✅ `HexagonalArchitectureTest` compila e todas as 5 regras ArchUnit passam
 ✅ `npm ci` instala sem erros
 ✅ Jest configurado com `jsdom` e `@testing-library/jest-dom`
 ✅ `.env` gitignored; `.env.example` commitado com placeholders
 ✅ Dockerfiles backend e frontend criados
-✅ Estrutura de pacotes backend conforme `05-backend-design.md`
+✅ Estrutura de pacotes hexagonal conforme `05-backend-design.md` (`domain/`, `application/usecase/`, `infrastructure/`)
 
 ---
 
@@ -314,6 +326,25 @@ O sistema de autenticação está completamente funcional: login com JWT, logout
 
 FASE-000 Scaffolding e Infraestrutura
 
+#### Padrão Hexagonal nesta Fase
+
+Cada funcionalidade segue o mapeamento de camadas definido em `05-backend-design.md`:
+
+| O quê | Onde |
+|---|---|
+| Modelo de domínio (`User`) | `domain/model/` |
+| Interfaces de repositório | `domain/port/out/` |
+| Interfaces de caso de uso | `domain/port/in/` |
+| Exceções de domínio | `domain/exception/` |
+| Implementações de caso de uso | `application/usecase/` com `@UseCase` |
+| Entidades JPA (`@Entity`) | `infrastructure/persistence/entity/` |
+| Spring Data repos | `infrastructure/persistence/repository/` |
+| Persistence adapters | `infrastructure/persistence/adapter/` |
+| Controllers + DTOs (Records) | `infrastructure/web/` + `infrastructure/web/dto/` |
+| JWT / Security | `infrastructure/security/` |
+
+Wiring de `@Bean` explícito entre casos de uso e ports: `infrastructure/config/ApplicationConfig.java`.
+
 #### Plano
 
 1. Criar migração `V1__create_security_tables.sql` em `backend/src/main/resources/db/migration/`:
@@ -321,9 +352,9 @@ FASE-000 Scaffolding e Infraestrutura
 2. Criar migração `V8__initial_data.sql`:
    - Inserir usuário `admin` com `login='admin'`, senha `Admin@123` hashada com BCrypt-12 e `status='ACTIVE'`
    - Inserir UG raiz de exemplo: `codigo_ug='MIN_ED'`, `nome='Ministério da Educação'`
-3. Criar a entidade JPA `User` em `auth/` com todos os campos da tabela `usuarios`; implementar `UserDetails` do Spring Security
-4. Criar `UserRepository` (JpaRepository) com: `findByLogin(String login)`, `findByEmail(String email)`
-5. Implementar `JwtService` em `auth/`:
+3. Criar o modelo de domínio `User.java` em `domain/model/` (sem framework deps); criar a entidade JPA `UserJpaEntity.java` em `infrastructure/persistence/entity/` implementando `UserDetails`; criar `UserJpaRepository` em `infrastructure/persistence/repository/`; criar `UserPersistenceAdapter` em `infrastructure/persistence/adapter/` implementando o port de saída
+4. Criar `UserRepository` (Output Port) em `domain/port/out/` com: `findByLogin(String login)`, `findByEmail(String email)`, `save(User user)`
+5. Implementar `JwtService` em `infrastructure/security/`:
    - `gerarToken(User user)` — JWT com claims: `sub=login`, `nome`, `tipo=SESSAO`, `exp` = agora + 8h; assinar com HMAC-SHA256 usando `JWT_SECRET`
    - `extrairLogin(String token)` — extrai o subject
    - `validarToken(String token)` — verifica assinatura e expiração; lança `InvalidTokenException` ou `ExpiredTokenException`
@@ -337,22 +368,21 @@ FASE-000 Scaffolding e Infraestrutura
    - Adicionar `JwtFilter` antes de `UsernamePasswordAuthenticationFilter`
    - Configurar CORS com a origin `${CORS_ALLOWED_ORIGINS}`
    - Desabilitar CSRF (SPA com JWT); session stateless
-8. Implementar `AuthService`:
-   - `login(RequisicaoLogin req)` — verifica senha BCrypt; se inválida: incrementa `tentativasLogin`; se >= 5: seta `bloqueadoAte = agora + 15min`; se válida: zera `tentativasLogin` e retorna JWT via `JwtService`
-   - `logout(String token)` — invalida sessão atual (simplificação: stateless, basta o cliente descartar o token)
-   - `recuperarSenha(String email)` — busca usuário por e-mail; gera UUID, persiste em `tokens_redefinicao_senha` com `expira_em = agora + 1h`; envia e-mail via `JavaMailSender`; sempre retorna 204 (não revela existência do e-mail)
-   - `redefinirSenha(RequisicaoRedefinicaoSenha req)` — busca token em `tokens_redefinicao_senha`; valida `usado=false` e `expira_em > agora`; atualiza `senha_hash` com BCrypt-12; marca token como `usado=true`
-   - `alterarSenha(RequisicaoAlterarSenha req)` — verifica `senhaAtual` com BCrypt; atualiza para `novaSenha`
-9. Implementar `AuthController` com os cinco endpoints de `06-api-design.md`: `POST /login`, `POST /logout`, `POST /recover-password`, `PUT /reset-password`, `PUT /change-password`
-10. Criar `SecurityContext` em `common/security/` com método estático `getUsuarioLogado()` que extrai o `User` do `SecurityContextHolder`
-11. Criar exceções em `common/exception/` com handlers no `GlobalExceptionHandler`:
+8. Implementar `LoginService` em `application/usecase/` (`@UseCase`, implements `LoginUseCase`):
+   - `login(LoginCommand cmd)` — verifica senha BCrypt via `UserRepository`; se inválida: incrementa `loginAttempts`; se >= 5: seta `lockedUntil = agora + 15min`; se válida: zera `loginAttempts` e retorna JWT via `JwtService`
+   - `recoverPassword(String email)` — busca usuário por e-mail; gera UUID, persiste em `password_reset_tokens` com `expiresAt = agora + 1h`; envia e-mail via `NotificationPort`; sempre retorna sem revelar existência do e-mail
+   - `resetPassword(ResetPasswordCommand cmd)` — busca token; valida `used=false` e `expiresAt > agora`; atualiza `passwordHash` com BCrypt-12; marca token como `used=true`
+   - `changePassword(ChangePasswordCommand cmd)` — verifica `currentPassword` com BCrypt; atualiza para `newPassword`
+   - Registrar `@Bean LoginUseCase` em `ApplicationConfig` com injeção de `UserRepository` + `JwtService` + `NotificationPort`
+9. Implementar `AuthController` em `infrastructure/web/` com os cinco endpoints de `06-api-design.md`: `POST /login`, `POST /logout`, `POST /recover-password`, `PUT /reset-password`, `PUT /change-password` — DTOs como Java Records em `infrastructure/web/dto/`
+10. Criar `SecurityContext` em `infrastructure/security/` com método estático `getLoggedInUser()` que extrai o `User` do `SecurityContextHolder`
+11. Criar exceções de domínio em `domain/exception/` e handlers no `GlobalExceptionHandler` em `infrastructure/web/`:
     - `InvalidCredentialsException` → 401 RFC 7807
     - `AccountLockedException` → 423 RFC 7807 com detalhe do horário de desbloqueio
     - `InvalidTokenException` → 401 RFC 7807
     - `ExpiredTokenException` → 401 RFC 7807
-    - `EntityNotFoundException` → 404 RFC 7807
     - Handler para `MethodArgumentNotValidException` (Bean Validation) → 400 RFC 7807 com lista de campos inválidos
-12. Escrever testes unitários em `AuthServiceTest` (pacote `auth`):
+12. Escrever testes unitários em `LoginServiceTest` (pacote `application/usecase`) — pure JUnit, Mockito para `UserRepository`:
     ```
     // Constantes obrigatórias no topo da classe:
     static final String VALID_LOGIN         = "joao.silva";
@@ -412,7 +442,7 @@ FASE-000 Scaffolding e Infraestrutura
     - `shouldRedirectToHomeAfterSuccessfulLogin()`
     - `shouldDisableButtonWhileRequestInProgress()`
     - `shouldShowLockErrorWhenAccount423()`
-20. Executar `mvn verify -f backend/pom.xml` — cobertura do pacote `auth` ≥ 90%
+20. Executar `mvn verify -f backend/pom.xml` — cobertura dos pacotes `application/usecase` e `infrastructure/security` ≥ 90%
 
 #### Resultado Esperado
 
@@ -426,7 +456,7 @@ FASE-000 Scaffolding e Infraestrutura
 
 #### Verificação Automatizada (AI Gate)
 
-1. `mvn verify -f backend/pom.xml` — todos os testes passam; cobertura `auth` ≥ 90%
+1. `mvn verify -f backend/pom.xml` — todos os testes passam; cobertura `application.usecase` e `infrastructure.security` ≥ 90%
 2. `POST /api/v1/auth/login` com `{"login":"admin","senha":"Admin@123"}` → 200 com `token` JWT
 3. `POST /api/v1/auth/login` com senha incorreta → 401 RFC 7807
 4. Após 5 tentativas inválidas → 423 RFC 7807
@@ -456,7 +486,7 @@ FASE-000 Scaffolding e Infraestrutura
 ✅ Redefinição com token expirado → 401
 ✅ Swagger UI acessível sem autenticação
 ✅ Requisição sem token → 401
-✅ Cobertura `auth` ≥ 90%
+✅ Cobertura `application.usecase` e `infrastructure.security` ≥ 90%
 ✅ Testes de integração cobrem F1-01 a F1-10
 ✅ Página de Login do frontend funcional
 ✅ Rotas protegidas redirecionam para `/login`
@@ -480,33 +510,37 @@ FASE-000 Scaffolding e Infraestrutura
 
 FASE-001 Autenticação e Segurança
 
+#### Padrão Hexagonal nesta Fase
+
+Cada entidade segue o mesmo mapeamento de FASE-001: domínio puro em `domain/model/`, ports em `domain/port/`, use cases em `application/usecase/@UseCase`, JPA em `infrastructure/persistence/`, controllers + DTOs Records em `infrastructure/web/`. Wiring em `ApplicationConfig`.
+
 #### Plano
 
 1. Criar migração `V2__create_structure_tables.sql`:
-   - Tabela `unidades_gestoras` com auto-referência `orgao_superior_id` conforme DDL em `04-database-design.md`
+   - Tabela `managing_units` com auto-referência `parent_unit_id` conforme DDL em `04-database-design.md`
 2. Criar migração `V3__create_classification_tables.sql`:
-   - Tabelas `acoes_orcamentarias`, `planos_internos`, `naturezas_despesa`, `fontes_recurso`, `ptres` conforme DDL
-   - Índice `idx_ug_codigo`, `idx_ug_superior`
-3. Criar entidade JPA `ManagingUnit` em `managingunit/` com `@ManyToOne @JoinColumn(name="orgao_superior_id") ManagingUnit orgaoSuperior` (nullable)
-4. Criar `ManagingUnitRepository`:
-   - `findByCodigoUg(String codigo)`
-   - `findByOrgaoSuperiorId(Long id)`
-   - `findAllByStatus(String status, Pageable p)`
-   - `existsByCodigoUg(String codigo)`
-5. Criar DTOs em `managingunit/dto/`: `RequisicaoCriarUG`, `RequisicaoAtualizarUG`, `RespostaUG` (inclui `orgaoSuperior` simplificado: apenas `id` e `nome`)
-6. Criar `ManagingUnitMapper` (MapStruct)
-7. Implementar `ManagingUnitService`:
-   - `create(req)` — valida código único
-   - `findById(id)` — lança `EntityNotFoundException` se não encontrada
-   - `list(filtros, pageable)`
-   - `update(id, req)` — não permite alteração de `codigoUg`
-   - `deactivate(id)` — status → `INACTIVE`
-   - `findSubordinates(id)` — busca recursiva de subordinadas
-8. Criar `ManagingUnitController` com endpoints: `GET /api/v1/managing-units`, `POST`, `GET /{id}`, `PUT /{id}`, `PATCH /{id}/deactivate`, `GET /{id}/subordinates`
-9. Para cada classificação (`BudgetAction`, `InternalPlan`, `ExpenseNature`, `FundingSource`, `Ptres`), criar entidade JPA, Repository, DTOs, Mapper e Service com operações: `create`, `findById`, `list`, `update`, `deactivate`, `delete`
-10. A operação `excluir` em classificações deve verificar se há dotações referenciando a classificação; se sim → lançar nova exceção `ReferencedEntityException` → 422 RFC 7807 com mensagem "Classificação referenciada; não pode ser excluída"
+   - Tabelas `budget_actions`, `internal_plans`, `expense_natures`, `funding_sources`, `ptres` conforme DDL
+   - Índices `idx_managing_unit_code`, `idx_managing_unit_parent`
+3. Criar domínio `ManagingUnit.java` em `domain/model/`; entidade JPA `ManagingUnitJpaEntity` em `infrastructure/persistence/entity/` com `@ManyToOne parent_unit_id` (nullable); Spring Data repo `ManagingUnitJpaRepository`; persistence adapter `ManagingUnitPersistenceAdapter`
+4. Criar port `ManagingUnitRepository` em `domain/port/out/`:
+   - `findByUnitCode(String code)`
+   - `findByParentUnitId(Long id)`
+   - `findAllActive(Pageable p)`
+   - `existsByUnitCode(String code)`
+5. Criar DTOs em `infrastructure/web/dto/`: `CreateManagingUnitRequest`, `UpdateManagingUnitRequest`, `ManagingUnitResponse` (inclui `parentUnit` simplificado: apenas `id` e `name`)
+6. Criar `ManagingUnitMapper` (MapStruct) em `infrastructure/web/mapper/`
+7. Implementar use cases em `application/usecase/` com `@UseCase`:
+   - `CreateManagingUnitService` — valida código único
+   - `FindManagingUnitService` — lança `EntityNotFoundException` se não encontrada
+   - `ListManagingUnitsService`
+   - `UpdateManagingUnitService` — não permite alteração de `unitCode`
+   - `DeactivateManagingUnitService` — status → `INACTIVE`
+   - `FindSubordinatesService` — busca recursiva de subordinadas
+8. Criar `ManagingUnitController` em `infrastructure/web/` com endpoints: `GET /api/v1/managing-units`, `POST`, `GET /{id}`, `PUT /{id}`, `PATCH /{id}/deactivate`, `GET /{id}/subordinates`
+9. Para cada classificação (`BudgetAction`, `InternalPlan`, `ExpenseNature`, `FundingSource`, `Ptres`), criar: domínio em `domain/model/`, port em `domain/port/out/`, use cases em `application/usecase/`, JPA em `infrastructure/persistence/`, controller + DTOs em `infrastructure/web/` — operações: `create`, `findById`, `list`, `update`, `deactivate`, `delete`
+10. A operação `delete` em classificações deve verificar se há allotments referenciando a classificação; se sim → lançar `ReferencedEntityException` em `domain/exception/` → 422 RFC 7807
 11. Adicionar handler de `ReferencedEntityException` ao `GlobalExceptionHandler`
-12. Criar Controllers para cada classificação com padrão CRUD + `PATCH /{id}/deactivate` + `DELETE /{id}` conforme `06-api-design.md`
+12. Registrar todos os novos `@Bean` use cases em `ApplicationConfig`; Criar Controllers conforme `06-api-design.md`
 13. Adicionar `@Auditable` stub (anotação criada nesta fase) aos métodos de escrita dos Services — o interceptor AOP só é ativado na FASE-006; por ora a anotação existe mas não faz nada
 14. Escrever testes unitários `ManagingUnitServiceTest`:
     ```
@@ -595,6 +629,10 @@ FASE-001 Autenticação e Segurança
 
 FASE-002 UGs e Classificações Orçamentárias
 
+#### Padrão Hexagonal nesta Fase
+
+Mesmo padrão de FASE-001/002. `BudgetAllotment` e `CreditNote` são modelos de domínio ricos — `BudgetAllotment.supplement()`, `CreditNote.approve()`, `CreditNote.cancel()`, `CreditNote.reverse()` são métodos do domínio que encapsulam regras de negócio e estado. `DocumentNumberGenerator` vive em `domain/port/out/DocumentSequenceRepository` (port) + `infrastructure/persistence/adapter/DocumentSequencePersistenceAdapter` (adaptador com SELECT FOR UPDATE).
+
 #### Plano
 
 1. Criar migração `V4__create_budget_tables.sql`:
@@ -605,13 +643,12 @@ FASE-002 UGs e Classificações Orçamentárias
 
    > **Nota de ajuste:** O design original (`04-database-design.md`) coloca `sequencias_documentos` em V5. Esta fase a move para V4 pois a numeração de NC já é necessária aqui. Os documentos de design não precisam ser atualizados — é uma decisão de implementação.
 
-2. Implementar `DocumentNumberGenerator` em `common/sequence/`:
-   - `gerarNumero(String tipoDocumento, Long ugId, Integer exercicio)` — executa em `@Transactional(propagation=MANDATORY)` (deve rodar dentro de transação existente)
-   - `SELECT ultimo_numero FROM sequencias_documentos WHERE tipo_documento=? AND ug_id=? AND exercicio=? FOR UPDATE`
-   - Se não existe: INSERT com `ultimo_numero=1`; se existe: UPDATE `ultimo_numero = ultimo_numero + 1`
-   - Retorna a string formatada: `[exercício 4d][codigoUg sem traços][sequencial com LPAD 6 zeros]`
-   - Tipos: `NC`, `NE`, `NL`, `OB`
-3. Criar entidade JPA `BudgetAllotment` em `allotment/` com ManyToOne para `ManagingUnit`, `BudgetAction`, `InternalPlan` (nullable), `ExpenseNature`, `FundingSource`, `Ptres`
+2. Implementar numeração de documentos com separação hexagonal:
+   - Port `DocumentSequenceRepository` em `domain/port/out/` com `nextNumber(DocumentType type, int fiscalYear)` retornando `DocumentNumber`
+   - `DocumentSequencePersistenceAdapter` em `infrastructure/persistence/adapter/` implementa o port: executa em `@Transactional(propagation=MANDATORY)`, `SELECT ... FOR UPDATE`, INSERT ou UPDATE em `document_sequences`
+   - Retorna `DocumentNumber` formatado: `[exercício 4d][codigoUG][sequencial 6d]`
+   - Tipos: `NC`, `NE`, `NL`, `OB` (enum `DocumentType` em `domain/model/vo/`)
+3. Criar domínio `BudgetAllotment.java` em `domain/model/` com `supplement(Money)`, `availableBalance()`; entidade JPA `BudgetAllotmentJpaEntity` em `infrastructure/persistence/entity/` com ManyToOne para as cinco classificações e ManagingUnit; Spring Data repo + PersistenceAdapter
 4. Criar `BudgetAllotmentRepository`:
    - `findByUgIdAndExercicio(Long ugId, Integer exercicio, Pageable p)`
    - Query nativa/JPQL `calcularTotalEmpenhado(Long dotacaoId)` — soma `valor` de NEs com status `PENDING_SETTLEMENT`, `PARTIALLY_SETTLED`, `SETTLED`, `PAID`
@@ -622,7 +659,7 @@ FASE-002 UGs e Classificações Orçamentárias
    - `supplement(id, valor)` — adiciona ao `valor_atualizado`; `@Transactional`
    - `getBalance(id)` — retorna DTO com: `dotacaoInicial`, `dotacaoAtualizada`, `creditosRecebidos`, `creditosCedidos`, `empenhado`, `saldoDisponivel`
 6. Criar `BudgetAllotmentController` com endpoints: `GET /api/v1/allotments`, `POST`, `GET /{id}`, `PUT /{id}`, `GET /{id}/saldo`, `POST /{id}/supplement`
-7. Criar entidade JPA `CreditNote` em `creditnote/` com campos conforme `04-database-design.md` e ManyToOne para as duas UGs e duas dotações
+7. Criar domínio `CreditNote.java` em `domain/model/` com métodos `issue()`, `approve()`, `cancel()`, `reverse()`; entidade JPA `CreditNoteJpaEntity` em `infrastructure/persistence/entity/` com ManyToOne para as duas UGs e duas dotações; Spring Data repo + PersistenceAdapter
 8. Implementar `CreditNoteService`:
    - `issue(req)` — valida `ugOrigem ≠ ugDestino`; gera `numeroNc` via `DocumentNumberGenerator`; status inicial `PENDING`; `@Transactional`
    - `findById(id)`, `list(filtros, pageable)`
@@ -736,6 +773,10 @@ FASE-002 UGs e Classificações Orçamentárias
 
 FASE-003 Dotações e Notas de Crédito
 
+#### Padrão Hexagonal nesta Fase
+
+Mesmo padrão das fases anteriores. `Commitment` é o modelo de domínio mais rico: `Commitment.issue()` (factory), `Commitment.void()`, `Commitment.markSettled()` encapsulam as regras de tipo (ORDINARY vs ESTIMATED/GLOBAL). `CommitmentType` e `CommitmentStatus` são enums em `domain/model/vo/`. `Vendor` também tem domínio puro em `domain/model/`.
+
 #### Plano
 
 1. Criar migração `V5__create_execution_tables.sql` com **todas** as tabelas de execução (incluindo as que serão usadas na FASE-005):
@@ -744,13 +785,13 @@ FASE-003 Dotações e Notas de Crédito
 
    > **Nota:** Aplicar V5 completo nesta fase — as tabelas `liquidacoes_empenho` e `ordens_bancarias` existirão no banco mas o código de serviço só será implementado na FASE-005.
 
-2. Criar entidade JPA `Vendor` em `vendor/` com campos conforme `04-database-design.md`
+2. Criar domínio `Vendor.java` em `domain/model/`; entidade JPA `VendorJpaEntity` em `infrastructure/persistence/entity/`; Spring Data repo `VendorJpaRepository`; persistence adapter `VendorPersistenceAdapter`; port `VendorRepository` em `domain/port/out/`
 3. Criar `VendorRepository`: `findByCnpj(String cnpj)`, `existsByCnpj(String cnpj)`, `findAllByStatus(String status, Pageable p)`
 4. Implementar `VendorService`: `create(req)`, `findById(id)`, `list(filtros, pageable)`, `update(id, req)`, `deactivate(id)`
 5. Criar `VendorController` com: `GET /api/v1/vendors`, `POST`, `GET /{id}`, `PUT /{id}`, `PATCH /{id}/deactivate`
 6. Criar enum `CommitmentType` com valores `ORDINARY`, `ESTIMATED`, `GLOBAL`
 7. Criar enum `CommitmentStatus` com valores `PENDING_SETTLEMENT`, `PARTIALLY_SETTLED`, `SETTLED`, `PAID`, `VOIDED`
-8. Criar entidade JPA `Commitment` em `commitment/` com os dois enums mapeados como `@Enumerated(EnumType.STRING)`
+8. Criar domínio `Commitment.java` em `domain/model/` com factory `Commitment.issue()` e métodos `void()`, `markSettled()`, `markPaid()`; enums `CommitmentType` e `CommitmentStatus` em `domain/model/vo/`; entidade JPA `CommitmentJpaEntity` em `infrastructure/persistence/entity/` com `@Enumerated(EnumType.STRING)`; Spring Data repo + PersistenceAdapter; port `CommitmentRepository` em `domain/port/out/`
 9. Criar `CommitmentRepository`:
    - `sumValorAtivoByDotacaoId(Long dotacaoId)` — soma valor de NEs com status ≠ `VOIDED`
    - `existsByDotacaoIdAndStatusIn(Long dotacaoId, List<CommitmentStatus> statusList)` — verifica NEs ativas
@@ -871,11 +912,15 @@ O ciclo financeiro está completo. É possível liquidar empenhos e registrar pa
 
 FASE-004 Fornecedores e Notas de Empenho
 
+#### Padrão Hexagonal nesta Fase
+
+Mesmo padrão das fases anteriores. `Settlement.register()` e `PaymentOrder.issue()` são métodos de domínio; propagação de status da NE é responsabilidade do modelo de domínio `Commitment.markSettled()` / `markPaid()`. As tabelas já existem no banco desde a V5 (FASE-004) — esta fase apenas implementa código.
+
 #### Plano
 
-> As tabelas `liquidacoes_empenho` e `ordens_bancarias` já existem no banco (criadas pela V5 na FASE-004). Esta fase apenas implementa o código de serviço.
+> As tabelas `settlements` e `payment_orders` já existem no banco (criadas pela V5 na FASE-004). Esta fase apenas implementa o código de serviço.
 
-1. Criar entidade JPA `Settlement` em `settlement/` com `@ManyToOne Commitment commitment`
+1. Criar domínio `Settlement.java` em `domain/model/`; entidade JPA `SettlementJpaEntity` em `infrastructure/persistence/entity/` com `@ManyToOne CommitmentJpaEntity`; Spring Data repo + PersistenceAdapter; port `SettlementRepository` em `domain/port/out/`
 2. Criar `SettlementRepository`:
    - `findByCommitmentId(Long neId, Pageable p)`
    - `sumValorByCommitmentIdAndStatus(Long neId, String status)` — total liquidado com status `REGISTERED`
@@ -902,7 +947,7 @@ FASE-004 Fornecedores e Notas de Empenho
 4. Criar `PartialSettlementNotAllowedException` → 422; adicionar handler ao `GlobalExceptionHandler`
 5. Criar `SettlementController`: `GET /api/v1/settlements`, `POST`, `GET /{id}`, `PATCH /{id}/reverse`
 6. Conectar `GET /api/v1/commitments/{id}/settlements` no `CommitmentController` ao `SettlementService.findByCommitment(id)`
-7. Criar entidade JPA `PaymentOrder` em `paymentorder/` com `@ManyToOne Settlement settlement`
+7. Criar domínio `PaymentOrder.java` em `domain/model/`; entidade JPA `PaymentOrderJpaEntity` em `infrastructure/persistence/entity/` com `@ManyToOne SettlementJpaEntity`; Spring Data repo + PersistenceAdapter; port `PaymentOrderRepository` em `domain/port/out/`
 8. Criar `PaymentOrderRepository`:
    - `existsBySettlementIdAndStatusNot(Long nlId, String status)` — verifica OB não cancelada
 9. Implementar `PaymentOrderService`:

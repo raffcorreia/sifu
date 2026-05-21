@@ -19,6 +19,7 @@
 | JUnit 5 | — | Testes unitários e de integração |
 | Mockito | — | Mocks em testes |
 | Testcontainers | — | PostgreSQL real em testes de integração |
+| ArchUnit | 1.x | Testes de arquitetura — garante regras da Arquitetura Hexagonal |
 | Maven | 3.9.x | Build e gerenciamento de dependências |
 
 **Justificativas:**
